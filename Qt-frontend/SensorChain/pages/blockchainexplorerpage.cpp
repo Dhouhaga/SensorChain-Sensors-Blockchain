@@ -1,3 +1,4 @@
+// blockchainexplorerpage.cpp
 #include "blockchainexplorerpage.h"
 #include <QJsonDocument>
 #include <QHeaderView>
@@ -37,7 +38,7 @@ void BlockchainExplorerPage::setupUi()
     root->setSpacing(16);
 
     // ── Page title ────────────────────────────────────────────
-    auto *titleLabel = new QLabel("⛓ Blockchain Explorer");
+    auto *titleLabel = new QLabel("Blockchain Explorer");
     titleLabel->setObjectName("pageTitle");
     auto *subtitleLabel = new QLabel("Inspect blocks, transactions, and contract events");
     subtitleLabel->setObjectName("pageSubtitle");
@@ -110,7 +111,7 @@ void BlockchainExplorerPage::setupUi()
     lookupLayout->addWidget(m_blockDetail, 1);
     blocksLayout->addWidget(lookupBox, 1);
 
-    m_tabs->addTab(blocksTab, "🔲 Blocks");
+    m_tabs->addTab(blocksTab, "Blocks");
 
     // ─────────────────────────────────────────────────────────
     // TAB 2: Transactions
@@ -138,7 +139,7 @@ void BlockchainExplorerPage::setupUi()
     txBoxLay->addWidget(m_txDetail, 1);
     txLayout->addWidget(txBox, 1);
 
-    m_tabs->addTab(txTab, "📄 Transactions");
+    m_tabs->addTab(txTab, "Transactions");
 
     // ─────────────────────────────────────────────────────────
     // TAB 3: Events
@@ -151,7 +152,7 @@ void BlockchainExplorerPage::setupUi()
     auto *evHeader = new QHBoxLayout();
     auto *evTitle  = new QLabel("All Contract Events");
     evTitle->setObjectName("pageSubtitle");
-    m_refreshEventsBtn = new QPushButton("↻ Refresh");
+    m_refreshEventsBtn = new QPushButton("Refresh");
     m_refreshEventsBtn->setObjectName("primaryBtn");
     evHeader->addWidget(evTitle, 1);
     evHeader->addWidget(m_refreshEventsBtn);
@@ -166,7 +167,7 @@ void BlockchainExplorerPage::setupUi()
     m_eventsTable->verticalHeader()->setVisible(false);
     evLayout->addWidget(m_eventsTable, 1);
 
-    m_tabs->addTab(evTab, "📋 Events");
+    m_tabs->addTab(evTab, "Events");
 }
 
 // ============================================================
@@ -207,10 +208,10 @@ void BlockchainExplorerPage::onNetworkReady(QJsonObject data)
             .arg(data["chainId"].toInt())
             .arg(data["networkName"].toString())
             .arg(data["rpcUrl"].toString())
-    );
+        );
     m_gasPriceLabel->setText(
         QString("%1 Gwei").arg(data["gasPriceGwei"].toString())
-    );
+        );
 }
 
 void BlockchainExplorerPage::onLatestBlockReady(QJsonObject data)
@@ -266,7 +267,7 @@ void BlockchainExplorerPage::onRefreshEvents()
 void BlockchainExplorerPage::onEventHistoryReady(QJsonObject data)
 {
     m_refreshEventsBtn->setEnabled(true);
-    m_refreshEventsBtn->setText("↻ Refresh");
+    m_refreshEventsBtn->setText("Refresh");
     m_eventsTable->setRowCount(0);
 
     auto addGroup = [&](const QString &key) {
@@ -277,8 +278,8 @@ void BlockchainExplorerPage::onEventHistoryReady(QJsonObject data)
             int     block   = e["blockNumber"].toInt();
             QString txHash  = e["txHash"].toString();
             QString ts      = e["blockTimestampISO"].isUndefined()
-                                ? e["timestamp"].toString()
-                                : e["blockTimestampISO"].toString().left(19).replace("T"," ");
+                             ? e["timestamp"].toString()
+                             : e["blockTimestampISO"].toString().left(19).replace("T"," ");
 
             // Build human summary per event type
             QString summary;
@@ -340,7 +341,7 @@ void BlockchainExplorerPage::onError(const QString &endpoint, const QString &msg
     m_fetchTxBtn->setEnabled(true);
     m_fetchTxBtn->setText("Fetch Tx");
     m_refreshEventsBtn->setEnabled(true);
-    m_refreshEventsBtn->setText("↻ Refresh");
+    m_refreshEventsBtn->setText("Refresh");
 
     if (endpoint.contains("/blockchain/block")) {
         m_blockDetail->setPlainText("Error: " + msg);
@@ -361,10 +362,10 @@ void BlockchainExplorerPage::showJson(QTextEdit *te, const QJsonObject &obj)
 }
 
 void BlockchainExplorerPage::appendEventRow(const QString &event,
-                                             const QString &summary,
-                                             const QString &txHash,
-                                             int blockNumber,
-                                             const QString &timestamp)
+                                            const QString &summary,
+                                            const QString &txHash,
+                                            int blockNumber,
+                                            const QString &timestamp)
 {
     int row = m_eventsTable->rowCount();
     m_eventsTable->insertRow(row);
@@ -372,13 +373,13 @@ void BlockchainExplorerPage::appendEventRow(const QString &event,
     auto *eventItem = new QTableWidgetItem(event);
     // Colour-code by event type
     if (event.contains("Faulty") || event.contains("Rejected"))
-        eventItem->setForeground(QColor("#ff6b6b"));
+        eventItem->setForeground(QColor("#c92a2a"));
     else if (event.contains("Reached") || event.contains("Registered"))
-        eventItem->setForeground(QColor("#51cf66"));
+        eventItem->setForeground(QColor("#2b8c4e"));
     else if (event.contains("Deactivated"))
-        eventItem->setForeground(QColor("#ffd43b"));
+        eventItem->setForeground(QColor("#e67700"));
     else
-        eventItem->setForeground(QColor("#7c83fd"));
+        eventItem->setForeground(QColor("#4c6ef5"));
 
     m_eventsTable->setItem(row, 0, eventItem);
     m_eventsTable->setItem(row, 1, new QTableWidgetItem(summary));

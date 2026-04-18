@@ -1,3 +1,4 @@
+// consensusanalysispage.cpp
 #include "consensusanalysispage.h"
 #include <QHeaderView>
 #include <QJsonArray>
@@ -31,7 +32,7 @@ void ConsensusAnalysisPage::setupUi()
     root->setSpacing(16);
 
     // ── Header ────────────────────────────────────────────────
-    auto *titleLabel = new QLabel("🔬 Consensus Analysis");
+    auto *titleLabel = new QLabel("Consensus Analysis");
     titleLabel->setObjectName("pageTitle");
     auto *sub = new QLabel("Step-by-step breakdown of the pairwise fault-detection algorithm");
     sub->setObjectName("pageSubtitle");
@@ -87,8 +88,8 @@ void ConsensusAnalysisPage::setupUi()
     m_algorithmText = new QTextEdit();
     m_algorithmText->setReadOnly(true);
     m_algorithmText->setPlaceholderText("Select a round and click \"Load & Explain\" to see the step-by-step algorithm.");
-    // Override text colour to white-ish for readability
-    m_algorithmText->setStyleSheet("QTextEdit { color: #c0c4dc; }");
+    // Override text colour to dark for readability on white background
+    m_algorithmText->setStyleSheet("QTextEdit { color: #212529; background-color: #f8f9fa; }");
     rightLayout->addWidget(m_algorithmText, 1);
     splitter->addWidget(rightWidget);
 
@@ -125,9 +126,9 @@ void ConsensusAnalysisPage::setupUi()
     m_resultTxHash   = new QLabel("Tx: –");
     m_resultBlock    = new QLabel("Block: –");
     m_resultTimestamp = new QLabel("–");
-    m_resultTxHash->setStyleSheet("color: #7c83fd; font-size: 11px;");
-    m_resultBlock->setStyleSheet("color: #7c83fd; font-size: 11px;");
-    m_resultTimestamp->setStyleSheet("color: #4a4f6e; font-size: 10px;");
+    m_resultTxHash->setStyleSheet("color: #4c6ef5; font-size: 11px;");
+    m_resultBlock->setStyleSheet("color: #4c6ef5; font-size: 11px;");
+    m_resultTimestamp->setStyleSheet("color: #868e96; font-size: 10px;");
     traceVl->addWidget(traceTitle);
     traceVl->addWidget(m_resultTxHash);
     traceVl->addWidget(m_resultBlock);
@@ -202,19 +203,19 @@ void ConsensusAnalysisPage::populateSensorTable(const QJsonObject &step2)
         QString score = s["disagreementScore"].toString()
                         + " (" + s["disagreementScoreScaled"].toString() + ")";
         bool    faulty = s["isFaulty"].toBool();
-        QString status = faulty ? "⛔ FAULTY" : "✅ TRUSTED";
+        QString status = faulty ? "FAULTY" : "TRUSTED";
 
         m_sensorTable->setItem(row, 0, new QTableWidgetItem(addr.left(12) + "…"));
         m_sensorTable->setItem(row, 1, new QTableWidgetItem(val));
         m_sensorTable->setItem(row, 2, new QTableWidgetItem(score));
 
         auto *statusItem = new QTableWidgetItem(status);
-        statusItem->setForeground(faulty ? QColor("#ff6b6b") : QColor("#51cf66"));
+        statusItem->setForeground(faulty ? QColor("#c92a2a") : QColor("#2b8c4e"));
         statusItem->setFont([faulty]{ QFont f; f.setBold(true); return f; }());
         m_sensorTable->setItem(row, 3, statusItem);
 
         // Row background tint
-        QColor bg = faulty ? QColor(60, 20, 20) : QColor(20, 50, 30);
+        QColor bg = faulty ? QColor(255, 245, 245) : QColor(235, 251, 238);
         for (int c = 0; c < 4; c++) {
             if (m_sensorTable->item(row, c))
                 m_sensorTable->item(row, c)->setBackground(bg);
@@ -305,21 +306,21 @@ void ConsensusAnalysisPage::populateAlgorithmText(const QJsonObject &data)
 }
 
 void ConsensusAnalysisPage::populateResultBar(const QJsonObject &result,
-                                               const QJsonObject &trace)
+                                              const QJsonObject &trace)
 {
     bool reached = result["consensusReached"].toBool();
 
     m_resultValue->setText(
         reached ? (result["consensusValueScaled"].toString() + " °C") : "N/A"
-    );
+        );
     m_resultTrusted->setText(result["trustedParticipants"].toString());
     m_resultFaulty->setText(result["faultyCount"].toString());
 
-    m_resultStatus->setText(reached ? "✅ REACHED" : "⛔ REJECTED");
+    m_resultStatus->setText(reached ? "REACHED" : "REJECTED");
     m_resultStatus->setStyleSheet(
         QString("color: %1; font-weight: bold; font-size: 14px;")
-            .arg(reached ? "#51cf66" : "#ff6b6b")
-    );
+            .arg(reached ? "#2b8c4e" : "#c92a2a")
+        );
 
     // Blockchain trace
     if (!trace.isEmpty() && trace["txHash"].isString()) {

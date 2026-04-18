@@ -1,3 +1,4 @@
+// historypage.cpp
 #include "historypage.h"
 #include <QHeaderView>
 #include <QDateTime>
@@ -29,8 +30,8 @@ void HistoryPage::setupUi()
     mainLayout->addWidget(subtitle);
 
     QTabWidget *tabs = new QTabWidget();
-    tabs->addTab(buildRoundsTab(), "📊  Consensus Rounds");
-    tabs->addTab(buildEventsTab(), "📋  Event Log");
+    tabs->addTab(buildRoundsTab(), "Consensus Rounds");
+    tabs->addTab(buildEventsTab(), "Event Log");
     mainLayout->addWidget(tabs, 1);
 }
 
@@ -42,14 +43,14 @@ QWidget *HistoryPage::buildRoundsTab()
 
     // Top bar: refresh + lookup
     QHBoxLayout *topBar = new QHBoxLayout();
-    m_refreshBtn = new QPushButton("↻  Refresh All Rounds");
+    m_refreshBtn = new QPushButton("Refresh All Rounds");
     m_refreshBtn->setObjectName("primaryBtn");
 
     QLabel *lookupLbl = new QLabel("Jump to Round:");
     m_roundIdInput = new QSpinBox();
     m_roundIdInput->setRange(1, 99999);
     m_roundIdInput->setValue(1);
-    m_lookupBtn = new QPushButton("🔍  Load");
+    m_lookupBtn = new QPushButton("Load");
 
     topBar->addWidget(m_refreshBtn);
     topBar->addStretch();
@@ -113,7 +114,7 @@ QWidget *HistoryPage::buildEventsTab()
     m_fromBlockInput = new QSpinBox();
     m_fromBlockInput->setRange(0, 9999999);
     m_fromBlockInput->setValue(0);
-    m_loadEventsBtn = new QPushButton("📋  Load Events");
+    m_loadEventsBtn = new QPushButton("Load Events");
     m_loadEventsBtn->setObjectName("primaryBtn");
     topBar->addWidget(fromBlockLbl);
     topBar->addWidget(m_fromBlockInput);
@@ -153,7 +154,7 @@ void HistoryPage::populateRoundsTable(const QJsonArray &rounds)
         m_roundsTable->insertRow(i);
 
         bool reached = r["consensusReached"].toBool();
-        QString status = reached ? "✅  Reached" : "❌  Rejected";
+        QString status = reached ? "Reached" : "Rejected";
 
         m_roundsTable->setItem(i, 0, new QTableWidgetItem(r["roundId"].toString()));
         m_roundsTable->setItem(i, 1, new QTableWidgetItem(r["consensusValue"].toString()));
@@ -162,12 +163,12 @@ void HistoryPage::populateRoundsTable(const QJsonArray &rounds)
 
         int faultyCount = r["faultyCount"].toString("0").toInt();
         QTableWidgetItem *faultyItem = new QTableWidgetItem(r["faultyCount"].toString());
-        if (faultyCount > 0) faultyItem->setForeground(QColor("#ff6b6b"));
-        else faultyItem->setForeground(QColor("#51cf66"));
+        if (faultyCount > 0) faultyItem->setForeground(QColor("#c92a2a"));
+        else faultyItem->setForeground(QColor("#2b8c4e"));
         m_roundsTable->setItem(i, 4, faultyItem);
 
         QTableWidgetItem *statusItem = new QTableWidgetItem(status);
-        statusItem->setForeground(reached ? QColor("#51cf66") : QColor("#ff6b6b"));
+        statusItem->setForeground(reached ? QColor("#2b8c4e") : QColor("#c92a2a"));
         m_roundsTable->setItem(i, 5, statusItem);
 
         QString ts = r["timestamp"].toString("0");
@@ -200,13 +201,13 @@ void HistoryPage::populateRoundDetail(const QJsonObject &round)
 
     m_roundDetailTitle->setText(
         QString("Round %1 — %2  |  Consensus: %3 (%4 °C)  |  Trusted: %5  |  Faulty: %6")
-        .arg(roundId)
-        .arg(reached ? "✅ Reached" : "❌ Rejected")
-        .arg(round["consensusValue"].toString())
-        .arg(round["consensusValueScaled"].toString())
-        .arg(round["trustedParticipants"].toString())
-        .arg(round["faultyCount"].toString())
-    );
+            .arg(roundId)
+            .arg(reached ? "Reached" : "Rejected")
+            .arg(round["consensusValue"].toString())
+            .arg(round["consensusValueScaled"].toString())
+            .arg(round["trustedParticipants"].toString())
+            .arg(round["faultyCount"].toString())
+        );
 
     // Per-sensor breakdown
     QJsonArray sensors = round["sensors"].toArray();
@@ -223,15 +224,15 @@ void HistoryPage::populateRoundDetail(const QJsonObject &round)
         m_sensorBreakdownTable->setItem(i, 2, new QTableWidgetItem(s["valueScaled"].toString() + " °C"));
         m_sensorBreakdownTable->setItem(i, 3, new QTableWidgetItem(s["disagreementScore"].toString()));
 
-        QTableWidgetItem *statusItem = new QTableWidgetItem(isFaulty ? "❌  FAULTY" : "✅  Trusted");
-        statusItem->setForeground(isFaulty ? QColor("#ff6b6b") : QColor("#51cf66"));
+        QTableWidgetItem *statusItem = new QTableWidgetItem(isFaulty ? "FAULTY" : "Trusted");
+        statusItem->setForeground(isFaulty ? QColor("#c92a2a") : QColor("#2b8c4e"));
         m_sensorBreakdownTable->setItem(i, 4, statusItem);
 
         // Highlight entire row red if faulty
         if (isFaulty) {
             for (int c = 0; c < 5; c++) {
                 if (m_sensorBreakdownTable->item(i, c))
-                    m_sensorBreakdownTable->item(i, c)->setBackground(QColor("#2d1a1a"));
+                    m_sensorBreakdownTable->item(i, c)->setBackground(QColor(255, 245, 245));
             }
         }
     }
@@ -247,8 +248,8 @@ void HistoryPage::populateEventTree(const QJsonObject &events)
     m_eventTree->clear();
 
     auto addCategory = [this](const QString &name, const QJsonArray &arr,
-                               std::function<QString(QJsonObject)> formatter,
-                               const QColor &color) {
+                              std::function<QString(QJsonObject)> formatter,
+                              const QColor &color) {
         if (arr.isEmpty()) return;
         QTreeWidgetItem *cat = new QTreeWidgetItem(m_eventTree);
         cat->setText(0, name + "  (" + QString::number(arr.size()) + ")");
@@ -264,80 +265,80 @@ void HistoryPage::populateEventTree(const QJsonObject &events)
     };
 
     addCategory("ConsensusReached", events["consensusReached"].toArray(),
-        [](QJsonObject e) {
-            return QString("Round %1  →  %2 (%3 °C)  |  Trusted: %4  Faulty: %5")
-                .arg(e["roundId"].toString())
-                .arg(e["consensusValue"].toString())
-                .arg(e["consensusValueScaled"].toString())
-                .arg(e["trustedParticipants"].toString())
-                .arg(e["faultyCount"].toString());
-        }, QColor("#51cf66"));
+                [](QJsonObject e) {
+                    return QString("Round %1  →  %2 (%3 °C)  |  Trusted: %4  Faulty: %5")
+                        .arg(e["roundId"].toString())
+                        .arg(e["consensusValue"].toString())
+                        .arg(e["consensusValueScaled"].toString())
+                        .arg(e["trustedParticipants"].toString())
+                        .arg(e["faultyCount"].toString());
+                }, QColor("#2b8c4e"));
 
     addCategory("ConsensusRejected", events["consensusRejected"].toArray(),
-        [](QJsonObject e) {
-            return QString("Round %1  →  %2 faulty out of %3  |  %4")
-                .arg(e["roundId"].toString())
-                .arg(e["faultyCount"].toString())
-                .arg(e["totalParticipants"].toString())
-                .arg(e["reason"].toString());
-        }, QColor("#ff6b6b"));
+                [](QJsonObject e) {
+                    return QString("Round %1  →  %2 faulty out of %3  |  %4")
+                        .arg(e["roundId"].toString())
+                        .arg(e["faultyCount"].toString())
+                        .arg(e["totalParticipants"].toString())
+                        .arg(e["reason"].toString());
+                }, QColor("#c92a2a"));
 
     addCategory("FaultySensorDetected", events["faultySensors"].toArray(),
-        [](QJsonObject e) {
-            return QString("Round %1  |  Sensor: %2  |  Value: %3 (%4 °C)  |  Score: %5  >  Threshold: %6")
-                .arg(e["roundId"].toString())
-                .arg(e["sensor"].toString().left(12) + "...")
-                .arg(e["submittedValue"].toString())
-                .arg(e["submittedValueScaled"].toString())
-                .arg(e["disagreementScore"].toString())
-                .arg(e["scoreThreshold"].toString());
-        }, QColor("#ffd43b"));
+                [](QJsonObject e) {
+                    return QString("Round %1  |  Sensor: %2  |  Value: %3 (%4 °C)  |  Score: %5  >  Threshold: %6")
+                        .arg(e["roundId"].toString())
+                        .arg(e["sensor"].toString().left(12) + "...")
+                        .arg(e["submittedValue"].toString())
+                        .arg(e["submittedValueScaled"].toString())
+                        .arg(e["disagreementScore"].toString())
+                        .arg(e["scoreThreshold"].toString());
+                }, QColor("#e67700"));
 
     addCategory("ReadingSubmitted", events["readingsSubmitted"].toArray(),
-        [](QJsonObject e) {
-            return QString("Round %1  |  Sensor: %2  |  Value: %3 (%4 °C)")
-                .arg(e["roundId"].toString())
-                .arg(e["sensor"].toString().left(12) + "...")
-                .arg(e["value"].toString())
-                .arg(e["valueScaled"].toString());
-        }, QColor("#7c83fd"));
+                [](QJsonObject e) {
+                    return QString("Round %1  |  Sensor: %2  |  Value: %3 (%4 °C)")
+                        .arg(e["roundId"].toString())
+                        .arg(e["sensor"].toString().left(12) + "...")
+                        .arg(e["value"].toString())
+                        .arg(e["valueScaled"].toString());
+                }, QColor("#4c6ef5"));
 
     addCategory("NewRoundStarted", events["newRounds"].toArray(),
-        [](QJsonObject e) {
-            QDateTime dt = QDateTime::fromSecsSinceEpoch(e["timestamp"].toString("0").toLongLong());
-            return QString("Round %1  started at %2")
-                .arg(e["roundId"].toString())
-                .arg(dt.toString("dd/MM/yyyy hh:mm:ss"));
-        }, QColor("#4dabf7"));
+                [](QJsonObject e) {
+                    QDateTime dt = QDateTime::fromSecsSinceEpoch(e["timestamp"].toString("0").toLongLong());
+                    return QString("Round %1  started at %2")
+                        .arg(e["roundId"].toString())
+                        .arg(dt.toString("dd/MM/yyyy hh:mm:ss"));
+                }, QColor("#339af0"));
 
     addCategory("DeviceRegistered", events["devicesRegistered"].toArray(),
-        [](QJsonObject e) {
-            return QString("%1  |  Type: %2  |  v%3")
-                .arg(e["deviceAddress"].toString().left(12) + "...")
-                .arg(e["deviceType"].toString())
-                .arg(e["firmwareVersion"].toString());
-        }, QColor("#a9e34b"));
+                [](QJsonObject e) {
+                    return QString("%1  |  Type: %2  |  v%3")
+                    .arg(e["deviceAddress"].toString().left(12) + "...")
+                        .arg(e["deviceType"].toString())
+                        .arg(e["firmwareVersion"].toString());
+                }, QColor("#94d82d"));
 
     addCategory("DeviceDeactivated", events["devicesDeactivated"].toArray(),
-        [](QJsonObject e) {
-            return QString("%1").arg(e["deviceAddress"].toString());
-        }, QColor("#ff8787"));
+                [](QJsonObject e) {
+                    return QString("%1").arg(e["deviceAddress"].toString());
+                }, QColor("#ff8787"));
 
     addCategory("DeviceReactivated", events["devicesReactivated"].toArray(),
-        [](QJsonObject e) {
-            return QString("%1").arg(e["deviceAddress"].toString());
-        }, QColor("#69db7c"));
+                [](QJsonObject e) {
+                    return QString("%1").arg(e["deviceAddress"].toString());
+                }, QColor("#69db7c"));
 
     addCategory("FirmwareUpdated", events["firmwareUpdated"].toArray(),
-        [](QJsonObject e) {
-            return QString("%1  →  v%2")
-                .arg(e["deviceAddress"].toString().left(12) + "...")
-                .arg(e["newVersion"].toString());
-        }, QColor("#da77f2"));
+                [](QJsonObject e) {
+                    return QString("%1  →  v%2")
+                        .arg(e["deviceAddress"].toString().left(12) + "...")
+                        .arg(e["newVersion"].toString());
+                }, QColor("#da77f2"));
 }
 
 void HistoryPage::onError(QString endpoint, QString error)
 {
     Q_UNUSED(endpoint)
-    m_roundDetailTitle->setText("❌  Error: " + error);
+    m_roundDetailTitle->setText("Error: " + error);
 }

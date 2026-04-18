@@ -1,3 +1,4 @@
+// dashboardpage.cpp
 #include "dashboardpage.h"
 #include <QDateTime>
 #include <QHeaderView>
@@ -68,10 +69,10 @@ void DashboardPage::setupUi()
     QGridLayout *statsGrid = new QGridLayout(statsWidget);
     statsGrid->setSpacing(12);
 
-    statsGrid->addWidget(makeStatCard("Current Round",    m_currentRoundLabel,  "#7c83fd"), 0, 0);
-    statsGrid->addWidget(makeStatCard("Total Rounds",     m_totalRoundsLabel,   "#51cf66"), 0, 1);
-    statsGrid->addWidget(makeStatCard("Total Devices",    m_totalDevicesLabel,  "#ffd43b"), 1, 0);
-    statsGrid->addWidget(makeStatCard("Trusted Sensors",  m_trustedCountLabel,  "#51cf66"), 1, 1);
+    statsGrid->addWidget(makeStatCard("Current Round",    m_currentRoundLabel,  "#4c6ef5"), 0, 0);
+    statsGrid->addWidget(makeStatCard("Total Rounds",     m_totalRoundsLabel,   "#2b8c4e"), 0, 1);
+    statsGrid->addWidget(makeStatCard("Total Devices",    m_totalDevicesLabel,  "#e67700"), 1, 0);
+    statsGrid->addWidget(makeStatCard("Trusted Sensors",  m_trustedCountLabel,  "#2b8c4e"), 1, 1);
 
     topRow->addWidget(statsWidget, 3);
     mainLayout->addLayout(topRow);
@@ -160,6 +161,7 @@ void DashboardPage::setupUi()
     m_participantsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_participantsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_participantsTable->setMaximumHeight(160);
+    m_participantsTable->setFocusPolicy(Qt::NoFocus);
     participantsLayout->addWidget(m_participantsTable);
 
     mainLayout->addWidget(participantsGroup);
@@ -167,7 +169,7 @@ void DashboardPage::setupUi()
 }
 
 QGroupBox *DashboardPage::makeStatCard(const QString &title, QLabel *&valueLabel,
-                                        const QString &color)
+                                       const QString &color)
 {
     QGroupBox *card = new QGroupBox(title);
     card->setMinimumHeight(80);
@@ -208,15 +210,15 @@ void DashboardPage::onLatestConsensus(QJsonObject data)
     int faultyInt = faulty.toInt();
     m_faultyCountLabel->setText(faulty);
     m_faultyCountLabel->setStyleSheet(faultyInt > 0
-        ? "color: #ff6b6b; font-size: 18px; font-weight: bold;"
-        : "color: #51cf66; font-size: 18px; font-weight: bold;");
+                                          ? "color: #c92a2a; font-size: 18px; font-weight: bold;"
+                                          : "color: #2b8c4e; font-size: 18px; font-weight: bold;");
 
     // Status
     if (faultyInt == 0) {
-        m_statusLabel->setText("✅  All sensors healthy");
+        m_statusLabel->setText("All sensors healthy");
         m_statusLabel->setObjectName("statusOk");
     } else {
-        m_statusLabel->setText(QString("⚠️  %1 faulty sensor(s) detected").arg(faultyInt));
+        m_statusLabel->setText(QString("%1 faulty sensor(s) detected").arg(faultyInt));
         m_statusLabel->setObjectName("statusWarning");
     }
 
@@ -267,8 +269,8 @@ void DashboardPage::onCurrentRound(QJsonObject data)
         m_participantsTable->insertRow(i);
 
         QTableWidgetItem *addrItem = new QTableWidgetItem(addr);
-        QTableWidgetItem *statusItem = new QTableWidgetItem("✅  Submitted");
-        statusItem->setForeground(QColor("#51cf66"));
+        QTableWidgetItem *statusItem = new QTableWidgetItem("Submitted");
+        statusItem->setForeground(QColor("#2b8c4e"));
 
         m_participantsTable->setItem(i, 0, addrItem);
         m_participantsTable->setItem(i, 1, statusItem);
@@ -292,28 +294,28 @@ void DashboardPage::onLatestRound(QJsonObject data)
 
     if (roundId == "0") {
         m_lastRoundStatusLabel->setText("No rounds yet");
-        m_lastRoundStatusLabel->setStyleSheet("color: #4a4f6e;");
+        m_lastRoundStatusLabel->setStyleSheet("color: #868e96;");
         return;
     }
 
     if (reached) {
         m_lastRoundStatusLabel->setText(
-            QString("✅  Consensus reached  |  Trusted: %1  |  Faulty: %2")
-            .arg(trusted).arg(faulty));
-        m_lastRoundStatusLabel->setStyleSheet("color: #51cf66; font-weight: bold;");
+            QString("Consensus reached  |  Trusted: %1  |  Faulty: %2")
+                .arg(trusted).arg(faulty));
+        m_lastRoundStatusLabel->setStyleSheet("color: #2b8c4e; font-weight: bold;");
     } else {
         m_lastRoundStatusLabel->setText(
-            QString("❌  REJECTED — %1 faulty out of %2 sensors")
-            .arg(faulty).arg(total));
-        m_lastRoundStatusLabel->setStyleSheet("color: #ff6b6b; font-weight: bold;");
+            QString("REJECTED — %1 faulty out of %2 sensors")
+                .arg(faulty).arg(total));
+        m_lastRoundStatusLabel->setStyleSheet("color: #c92a2a; font-weight: bold;");
     }
 
     // Also update the faulty count card with the real latest round data
     int faultyInt = faulty.toInt();
     m_faultyCountLabel->setText(faulty);
     m_faultyCountLabel->setStyleSheet(faultyInt > 0
-        ? "color: #ff6b6b; font-size: 18px; font-weight: bold;"
-        : "color: #51cf66; font-size: 18px; font-weight: bold;");
+                                          ? "color: #c92a2a; font-size: 18px; font-weight: bold;"
+                                          : "color: #2b8c4e; font-size: 18px; font-weight: bold;");
 }
 
 void DashboardPage::onError(QString endpoint, QString error)

@@ -1,3 +1,4 @@
+// adminpage.cpp
 #include "adminpage.h"
 #include <QDateTime>
 #include <QScrollArea>
@@ -46,9 +47,9 @@ void AdminPage::setupUi()
 
     // ── Left: tabs ───────────────────────────────────────────────────
     m_tabs = new QTabWidget();
-    m_tabs->addTab(buildRegistryTab(),  "📋  Registry");
-    m_tabs->addTab(buildConsensusTab(), "⚡  Consensus");
-    m_tabs->addTab(buildInfoTab(),      "ℹ️  Info");
+    m_tabs->addTab(buildRegistryTab(),  "Registry");
+    m_tabs->addTab(buildConsensusTab(), "Consensus");
+    m_tabs->addTab(buildInfoTab(),      "Info");
     contentRow->addWidget(m_tabs, 2);
 
     // ── Right: activity log ──────────────────────────────────────────
@@ -78,7 +79,7 @@ QWidget *AdminPage::buildRegistryTab()
     m_regFirmwareInput = new QLineEdit(); m_regFirmwareInput->setPlaceholderText("0x1234...");
     m_regVersionInput  = new QSpinBox();  m_regVersionInput->setRange(1, 9999); m_regVersionInput->setValue(1);
     m_regTypeInput     = new QLineEdit(); m_regTypeInput->setPlaceholderText("Temperature Sensor");
-    m_registerBtn      = new QPushButton("✅  Register Device");
+    m_registerBtn      = new QPushButton("Register Device");
     m_registerBtn->setObjectName("successBtn");
 
     regForm->addRow("Device Address:",   m_regAddressInput);
@@ -95,7 +96,7 @@ QWidget *AdminPage::buildRegistryTab()
     m_updAddressInput  = new QLineEdit(); m_updAddressInput->setPlaceholderText("0x...");
     m_updFirmwareInput = new QLineEdit(); m_updFirmwareInput->setPlaceholderText("0xNewHash...");
     m_updVersionInput  = new QSpinBox();  m_updVersionInput->setRange(1, 9999); m_updVersionInput->setValue(2);
-    m_updateFirmwareBtn = new QPushButton("🔄  Update Firmware");
+    m_updateFirmwareBtn = new QPushButton("Update Firmware");
     m_updateFirmwareBtn->setObjectName("primaryBtn");
 
     updForm->addRow("Device Address:",   m_updAddressInput);
@@ -109,8 +110,8 @@ QWidget *AdminPage::buildRegistryTab()
     QFormLayout *actForm = new QFormLayout(actGroup);
 
     m_deactAddressInput = new QLineEdit(); m_deactAddressInput->setPlaceholderText("0x...");
-    m_deactivateBtn     = new QPushButton("🔴  Deactivate");
-    m_reactivateBtn     = new QPushButton("🟢  Reactivate");
+    m_deactivateBtn     = new QPushButton("Deactivate");
+    m_reactivateBtn     = new QPushButton("Reactivate");
     m_deactivateBtn->setObjectName("dangerBtn");
     m_reactivateBtn->setObjectName("successBtn");
 
@@ -145,8 +146,8 @@ QWidget *AdminPage::buildConsensusTab()
     QGroupBox *roundGroup = new QGroupBox("Round Management");
     QHBoxLayout *roundLayout = new QHBoxLayout(roundGroup);
 
-    m_forceNewRoundBtn   = new QPushButton("⏭  Force New Round");
-    m_forceConsensusBtn  = new QPushButton("⚡  Force Consensus");
+    m_forceNewRoundBtn   = new QPushButton("Force New Round");
+    m_forceConsensusBtn  = new QPushButton("Force Consensus");
     m_forceNewRoundBtn->setObjectName("primaryBtn");
     m_forceConsensusBtn->setObjectName("primaryBtn");
     m_forceNewRoundBtn->setMinimumHeight(42);
@@ -271,16 +272,16 @@ void AdminPage::refresh()
 void AdminPage::logResult(const QString &action, const QJsonObject &receipt, bool success)
 {
     QDateTime now = QDateTime::currentDateTime();
-    QString prefix = success ? "✅" : "❌";
+    QString prefix = success ? "✓" : "✗";
     QString line = QString("[%1]  %2  %3\n")
-        .arg(now.toString("hh:mm:ss"))
-        .arg(prefix)
-        .arg(action);
+                       .arg(now.toString("hh:mm:ss"))
+                       .arg(prefix)
+                       .arg(action);
 
     if (!receipt.isEmpty()) {
         line += "     Tx: " + receipt["transactionHash"].toString() + "\n";
         line += "     Block: " + receipt["blockNumber"].toString()
-              + "  |  Gas: " + receipt["gasUsed"].toString() + "\n";
+                + "  |  Gas: " + receipt["gasUsed"].toString() + "\n";
     }
     line += "\n";
     m_activityLog->insertPlainText(line);
@@ -344,7 +345,7 @@ void AdminPage::onRegisterDeviceClicked() {
         m_regFirmwareInput->text().trimmed(),
         m_regVersionInput->value(),
         m_regTypeInput->text().trimmed()
-    );
+        );
 }
 
 void AdminPage::onUpdateFirmwareClicked() {
@@ -352,7 +353,7 @@ void AdminPage::onUpdateFirmwareClicked() {
         m_updAddressInput->text().trimmed(),
         m_updFirmwareInput->text().trimmed(),
         m_updVersionInput->value()
-    );
+        );
 }
 
 void AdminPage::onDeactivateClicked() {

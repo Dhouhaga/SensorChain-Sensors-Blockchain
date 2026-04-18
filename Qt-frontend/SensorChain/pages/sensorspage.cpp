@@ -1,3 +1,4 @@
+// sensorspage.cpp
 #include "sensorspage.h"
 #include <QHeaderView>
 #include <QDateTime>
@@ -65,7 +66,7 @@ void SensorsPage::setupUi()
 
     m_valueTempLabel = new QLabel("25.00 °C");
     m_valueTempLabel->setAlignment(Qt::AlignCenter);
-    m_valueTempLabel->setStyleSheet("color: #7c83fd; font-size: 22px; font-weight: bold;");
+    m_valueTempLabel->setStyleSheet("color: #4c6ef5; font-size: 22px; font-weight: bold;");
 
     m_valueSlider = new QSlider(Qt::Horizontal);
     m_valueSlider->setRange(-5000, 10000);  // -50.00 to 100.00 °C
@@ -95,7 +96,7 @@ void SensorsPage::setupUi()
     submitLayout->addWidget(m_firmwareHashInput);
 
     // Submit button
-    m_submitBtn = new QPushButton("📡  Submit Reading");
+    m_submitBtn = new QPushButton("Submit Reading");
     m_submitBtn->setObjectName("primaryBtn");
     m_submitBtn->setMinimumHeight(42);
     submitLayout->addWidget(m_submitBtn);
@@ -132,6 +133,7 @@ void SensorsPage::setupUi()
     m_participantsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     m_participantsTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     m_participantsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_participantsTable->setFocusPolicy(Qt::NoFocus);
     roundLayout->addWidget(m_participantsTable);
     rightLayout->addWidget(roundGroup);
 
@@ -146,7 +148,7 @@ void SensorsPage::setupUi()
     m_lookupSensorInput = new QLineEdit();
     m_lookupSensorInput->setPlaceholderText("0x...");
 
-    m_lookupBtn = new QPushButton("🔍  Lookup");
+    m_lookupBtn = new QPushButton("Lookup");
     m_lookupBtn->setObjectName("primaryBtn");
 
     m_lookupDisplay = new QTextEdit();
@@ -238,13 +240,13 @@ void SensorsPage::onSubmitClicked()
     QString firmware = m_firmwareHashInput->text().trimmed();
 
     if (addr.isEmpty() || firmware.isEmpty()) {
-        setStatus("❌  Please select a sensor and provide a firmware hash", false);
+        setStatus("Please select a sensor and provide a firmware hash", false);
         return;
     }
 
     m_submitBtn->setEnabled(false);
     m_submitBtn->setText("Submitting...");
-    setStatus("⏳  Sending to blockchain...", true);
+    setStatus("Sending to blockchain...", true);
 
     m_api->submitReading(addr, value, firmware);
 }
@@ -252,11 +254,11 @@ void SensorsPage::onSubmitClicked()
 void SensorsPage::onReadingSubmitted(QJsonObject receipt)
 {
     m_submitBtn->setEnabled(true);
-    m_submitBtn->setText("📡  Submit Reading");
-    setStatus("✅  Reading submitted successfully!", true);
+    m_submitBtn->setText("Submit Reading");
+    setStatus("Reading submitted successfully!", true);
 
     QString text;
-    text += "✅  Transaction confirmed\n";
+    text += "Transaction confirmed\n";
     text += "Tx Hash:   " + receipt["transactionHash"].toString() + "\n";
     text += "Block:     " + receipt["blockNumber"].toString() + "\n";
     text += "Gas Used:  " + receipt["gasUsed"].toString() + "\n";
@@ -301,11 +303,11 @@ void SensorsPage::onCurrentRound(QJsonObject data)
 
         QTableWidgetItem *statusItem;
         if (isFaulty) {
-            statusItem = new QTableWidgetItem("❌  Faulty");
-            statusItem->setForeground(QColor("#ff6b6b"));
+            statusItem = new QTableWidgetItem("Faulty");
+            statusItem->setForeground(QColor("#c92a2a"));
         } else {
-            statusItem = new QTableWidgetItem("✅  Submitted");
-            statusItem->setForeground(QColor("#51cf66"));
+            statusItem = new QTableWidgetItem("Submitted");
+            statusItem->setForeground(QColor("#2b8c4e"));
         }
         m_participantsTable->setItem(i, 2, statusItem);
     }
@@ -318,7 +320,7 @@ void SensorsPage::onReadingReady(QJsonObject reading)
     text += "Sensor:    " + reading["sensor"].toString() + "\n";
     text += "Value:     " + reading["value"].toString() + "  (" + reading["valueScaled"].toString() + " °C)\n";
     text += "Timestamp: " + reading["timestamp"].toString() + "\n";
-    text += "Faulty:    " + QString(reading["isFaulty"].toBool() ? "❌  YES" : "✅  NO") + "\n";
+    text += "Faulty:    " + QString(reading["isFaulty"].toBool() ? "YES" : "NO") + "\n";
     m_lookupDisplay->setText(text);
 }
 
@@ -332,15 +334,15 @@ void SensorsPage::onLookupReadingClicked()
 void SensorsPage::onError(QString endpoint, QString error)
 {
     m_submitBtn->setEnabled(true);
-    m_submitBtn->setText("📡  Submit Reading");
-    setStatus("❌  " + error, false);
-    m_resultDisplay->setText("❌  Error on " + endpoint + "\n" + error);
+    m_submitBtn->setText("Submit Reading");
+    setStatus(error, false);
+    m_resultDisplay->setText("Error on " + endpoint + "\n" + error);
 }
 
 void SensorsPage::setStatus(const QString &msg, bool success)
 {
     m_statusLabel->setText(msg);
     m_statusLabel->setStyleSheet(success
-        ? "color: #51cf66; font-weight: bold;"
-        : "color: #ff6b6b; font-weight: bold;");
+                                     ? "color: #2b8c4e; font-weight: bold;"
+                                     : "color: #c92a2a; font-weight: bold;");
 }

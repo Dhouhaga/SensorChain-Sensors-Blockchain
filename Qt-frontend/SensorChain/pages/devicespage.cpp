@@ -1,3 +1,4 @@
+// devicespage.cpp
 #include "devicespage.h"
 #include <QHeaderView>
 #include <QDateTime>
@@ -43,7 +44,7 @@ void DevicesPage::setupUi()
     QHBoxLayout *tableHeader = new QHBoxLayout();
     QLabel *tableTitle = new QLabel("All Registered Devices");
     tableTitle->setObjectName("pageSubtitle");
-    m_refreshBtn = new QPushButton("↻  Refresh");
+    m_refreshBtn = new QPushButton("Refresh");
     tableHeader->addWidget(tableTitle);
     tableHeader->addStretch();
     tableHeader->addWidget(m_refreshBtn);
@@ -58,6 +59,7 @@ void DevicesPage::setupUi()
     m_devicesTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     m_devicesTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_devicesTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_devicesTable->setFocusPolicy(Qt::NoFocus);
     leftLayout->addWidget(m_devicesTable);
 
     // ── Right: query panel ───────────────────────────────────────────
@@ -159,8 +161,8 @@ void DevicesPage::populateTable(const QJsonArray &devices)
         m_devicesTable->setItem(i, 2, item("v" + d["firmwareVersion"].toString()));
 
         bool active = d["isActive"].toBool();
-        QTableWidgetItem *activeItem = item(active ? "✅  Active" : "❌  Inactive");
-        activeItem->setForeground(active ? QColor("#51cf66") : QColor("#ff6b6b"));
+        QTableWidgetItem *activeItem = item(active ? "Active" : "Inactive");
+        activeItem->setForeground(active ? QColor("#2b8c4e") : QColor("#c92a2a"));
         m_devicesTable->setItem(i, 3, activeItem);
 
         QString ts = d["registrationTime"].toString("0");
@@ -206,8 +208,8 @@ void DevicesPage::onVerifyDevice(QString address, bool isActive)
     m_detailDisplay->setText(
         "=== Verify Device ===\n"
         "Address: " + address + "\n"
-        "Result:  " + QString(isActive ? "✅  Registered and ACTIVE" : "❌  NOT active or not registered")
-    );
+                    "Result:  " + QString(isActive ? "Registered and ACTIVE" : "NOT active or not registered")
+        );
 }
 
 void DevicesPage::onIsRegistered(QString address, bool isRegistered)
@@ -215,8 +217,8 @@ void DevicesPage::onIsRegistered(QString address, bool isRegistered)
     m_detailDisplay->setText(
         "=== Is Registered ===\n"
         "Address: " + address + "\n"
-        "Result:  " + QString(isRegistered ? "✅  YES — device has been registered" : "❌  NO — never registered")
-    );
+                    "Result:  " + QString(isRegistered ? "YES — device has been registered" : "NO — never registered")
+        );
 }
 
 void DevicesPage::onDeviceFirmware(QJsonObject firmware)
@@ -226,9 +228,9 @@ void DevicesPage::onDeviceFirmware(QJsonObject firmware)
     m_detailDisplay->setText(
         "=== Firmware Info ===\n"
         "Hash:        " + firmware["firmwareHash"].toString() + "\n"
-        "Version:     " + firmware["firmwareVersion"].toString() + "\n"
-        "Last Update: " + dt.toString("dd/MM/yyyy hh:mm:ss")
-    );
+                                                "Version:     " + firmware["firmwareVersion"].toString() + "\n"
+                                                   "Last Update: " + dt.toString("dd/MM/yyyy hh:mm:ss")
+        );
 }
 
 void DevicesPage::onVerifyFirmware(QString address, bool matches)
@@ -236,14 +238,14 @@ void DevicesPage::onVerifyFirmware(QString address, bool matches)
     m_detailDisplay->setText(
         "=== Verify Firmware ===\n"
         "Address: " + address + "\n"
-        "Hash:    " + m_firmwareHashInput->text() + "\n"
-        "Result:  " + QString(matches ? "✅  Hash MATCHES on-chain record" : "❌  Hash does NOT match")
-    );
+                    "Hash:    " + m_firmwareHashInput->text() + "\n"
+                                        "Result:  " + QString(matches ? "Hash MATCHES on-chain record" : "Hash does NOT match")
+        );
 }
 
 void DevicesPage::onError(QString endpoint, QString error)
 {
-    m_detailDisplay->setText("❌  Error on " + endpoint + "\n" + error);
+    m_detailDisplay->setText("Error on " + endpoint + "\n" + error);
 }
 
 void DevicesPage::onGetInfoClicked()
