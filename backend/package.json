@@ -1,0 +1,19 @@
+{
+  "name": "iot-blockchain-backend",
+  "version": "1.0.0",
+  "description": "Backend server for IoT Blockchain Sensor Consensus DApp",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

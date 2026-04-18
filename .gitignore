@@ -1,0 +1,16 @@
+# Qt build folders & IDE junk
+build/
+*/build*/
+.qtc_clangd/
+*.user
+*.pro.user
+*.pyc
+
+# Node.js / Backend junk
+node_modules/
+.env
+npm-debug.log*
+
+# OS junk
+Thumbs.db
+.DS_Store
