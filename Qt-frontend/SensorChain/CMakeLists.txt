@@ -26,6 +26,11 @@ set(PROJECT_SOURCES
     pages/adminpage.cpp
     pages/historypage.h
     pages/historypage.cpp
+    pages/blockchainexplorerpage.h
+    pages/blockchainexplorerpage.cpp
+    pages/consensusanalysispage.cpp
+    pages/consensusanalysispage.h
+
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

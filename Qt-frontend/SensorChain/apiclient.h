@@ -1,24 +1,24 @@
-#ifndef APICLIENT_H
-#define APICLIENT_H
-
+#pragma once
 #include <QObject>
 #include <QNetworkAccessManager>
-#include <QNetworkRequest>
 #include <QNetworkReply>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QUrl>
-#include <QUrlQuery>
+#include <QJsonDocument>
+#include <functional>
 
 /**
- * ApiClient — single class that handles all HTTP communication with the backend.
- * Every page in the app uses this class. No raw QNetworkAccessManager elsewhere.
+ * @class ApiClient
  *
- * Usage:
- *   ApiClient *api = new ApiClient(this);
- *   connect(api, &ApiClient::registryStatsReady, this, &MyPage::onStats);
- *   api->getRegistryStats();
+ * Thin HTTP wrapper around the IoT Blockchain backend.
+ *
+ * ENHANCED (v1.1):
+ *   • All write-signal payloads now carry enriched transaction data
+ *     (txHash, blockNumber, blockHash, from, to, gasUsed, gasPrice,
+ *      status, confirmations, blockTimestamp, logsCount).
+ *   • New blockchain inspector signals  (blockchainLatestReady,
+ *     blockchainBlockReady, blockchainTxReady, blockchainNetworkReady).
+ *   • New consensus explanation signal  (consensusExplainReady).
  */
 class ApiClient : public QObject
 {
@@ -27,12 +27,7 @@ class ApiClient : public QObject
 public:
     explicit ApiClient(QObject *parent = nullptr);
 
-    // Base URL — change if backend runs on a different port
-    static const QString BASE_URL;
-
-    // ================================================================
-    // DEVICE REGISTRY — READ
-    // ================================================================
+    // ── DeviceRegistry — read ────────────────────────────────────
     void getRegistryStats();
     void getAllDevices();
     void getDeviceInfo(const QString &address);
@@ -41,9 +36,7 @@ public:
     void getDeviceFirmware(const QString &address);
     void verifyFirmware(const QString &address, const QString &hash);
 
-    // ================================================================
-    // DEVICE REGISTRY — WRITE (admin)
-    // ================================================================
+    // ── DeviceRegistry — write ───────────────────────────────────
     void registerDevice(const QString &deviceAddress,
                         const QString &firmwareHash,
                         int firmwareVersion,
@@ -54,28 +47,20 @@ public:
     void deactivateDevice(const QString &deviceAddress);
     void reactivateDevice(const QString &deviceAddress);
 
-    // ================================================================
-    // SENSOR CONSENSUS — READ
-    // ================================================================
+    // ── SensorConsensus — read ───────────────────────────────────
+    void getLatestRound();
     void getConsensusStats();
     void getLatestConsensus();
-    void getLatestRound();
     void getAllRounds();
     void getCurrentRound();
     void getConsensusRound(int roundId);
     void getReading(int roundId, const QString &sensorAddress);
     void getEventHistory(int fromBlock = 0);
 
-    // ================================================================
-    // SENSOR CONSENSUS — WRITE (sensor)
-    // ================================================================
+    // ── SensorConsensus — write ──────────────────────────────────
     void submitReading(const QString &sensorAddress,
                        int value,
                        const QString &firmwareHash);
-
-    // ================================================================
-    // SENSOR CONSENSUS — WRITE (admin)
-    // ================================================================
     void forceNewRound();
     void forceConsensus();
     void setFaultyThreshold(int threshold);
@@ -83,58 +68,72 @@ public:
     void setConsensusWindow(int windowSeconds);
     void setDeviceRegistry(const QString &registryAddress);
 
+    // ── Consensus explanation (NEW) ──────────────────────────────
+    void getConsensusExplain(int roundId);
+
+    // ── Blockchain inspector (NEW) ───────────────────────────────
+    void getBlockchainNetwork();
+    void getBlockchainLatest();
+    void getBlockchainBlock(int blockNumber);
+    void getBlockchainTx(const QString &txHash);
+
 signals:
-    // ── Registry read signals ────────────────────────────────────────
+    // ── DeviceRegistry — read signals ────────────────────────────
     void registryStatsReady(QJsonObject data);
-    void allDevicesReady(QJsonArray devices);
-    void deviceInfoReady(QJsonObject device);
+    void allDevicesReady(QJsonArray data);
+    void deviceInfoReady(QJsonObject data);
     void verifyDeviceReady(QString address, bool isActive);
     void isDeviceRegisteredReady(QString address, bool isRegistered);
-    void deviceFirmwareReady(QJsonObject firmware);
+    void deviceFirmwareReady(QJsonObject data);
     void verifyFirmwareReady(QString address, bool matches);
 
-    // ── Registry write signals ───────────────────────────────────────
-    void deviceRegistered(QJsonObject receipt);
-    void firmwareUpdated(QJsonObject receipt);
-    void deviceDeactivated(QJsonObject receipt);
-    void deviceReactivated(QJsonObject receipt);
+    // ── DeviceRegistry — write signals ───────────────────────────
+    void deviceRegistered(QJsonObject txData);
+    void firmwareUpdated(QJsonObject txData);
+    void deviceDeactivated(QJsonObject txData);
+    void deviceReactivated(QJsonObject txData);
 
-    // ── Consensus read signals ───────────────────────────────────────
+    // ── SensorConsensus — read signals ───────────────────────────
+    void latestRoundReady(QJsonObject data);
     void consensusStatsReady(QJsonObject data);
     void latestConsensusReady(QJsonObject data);
-    void latestRoundReady(QJsonObject data);
-    void allRoundsReady(QJsonArray rounds);
+    void allRoundsReady(QJsonArray data);
     void currentRoundReady(QJsonObject data);
-    void consensusRoundReady(QJsonObject round);
-    void readingReady(QJsonObject reading);
-    void eventHistoryReady(QJsonObject events);
+    void consensusRoundReady(QJsonObject data);
+    void readingReady(QJsonObject data);
+    void eventHistoryReady(QJsonObject data);
 
-    // ── Consensus write signals ──────────────────────────────────────
-    void readingSubmitted(QJsonObject receipt);
-    void newRoundStarted(QJsonObject receipt);
-    void consensusForced(QJsonObject receipt);
-    void faultyThresholdSet(QJsonObject receipt);
-    void minSensorsSet(QJsonObject receipt);
-    void consensusWindowSet(QJsonObject receipt);
-    void deviceRegistrySet(QJsonObject receipt);
+    // ── SensorConsensus — write signals ──────────────────────────
+    void readingSubmitted(QJsonObject txData);
+    void newRoundStarted(QJsonObject txData);
+    void consensusForced(QJsonObject txData);
+    void faultyThresholdSet(QJsonObject txData);
+    void minSensorsSet(QJsonObject txData);
+    void consensusWindowSet(QJsonObject txData);
+    void deviceRegistrySet(QJsonObject txData);
 
-    // ── Error signal (any request) ───────────────────────────────────
+    // ── Consensus explanation (NEW) ──────────────────────────────
+    void consensusExplainReady(QJsonObject data);
+
+    // ── Blockchain inspector (NEW) ───────────────────────────────
+    void blockchainNetworkReady(QJsonObject data);
+    void blockchainLatestReady(QJsonObject data);
+    void blockchainBlockReady(QJsonObject data);
+    void blockchainTxReady(QJsonObject data);
+
+    // ── Error signal ─────────────────────────────────────────────
     void requestError(QString endpoint, QString errorMessage);
 
 private:
+    static const QString BASE_URL;
     QNetworkAccessManager *m_manager;
 
-    // HTTP helpers
     void get(const QString &endpoint,
              std::function<void(QJsonObject)> handler);
-
     void post(const QString &endpoint,
               const QJsonObject &body,
               std::function<void(QJsonObject)> handler);
-
     void handleReply(QNetworkReply *reply,
                      const QString &endpoint,
                      std::function<void(QJsonObject)> handler);
 };
-
-#endif // APICLIENT_H

@@ -1,13 +1,16 @@
 // ============================================================
 // index.js — Express server entry point
+//
+// ENHANCED: Added /blockchain routes for chain inspection.
 // ============================================================
 
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
+const cors    = require("cors");
 
-const registryRoutes = require("./routes/registry");
-const consensusRoutes = require("./routes/consensus");
+const registryRoutes    = require("./routes/registry");
+const consensusRoutes   = require("./routes/consensus");
+const blockchainRoutes  = require("./routes/blockchain");   // NEW
 
 const app = express();
 
@@ -22,16 +25,17 @@ app.use((req, res, next) => {
 });
 
 // ── Routes ───────────────────────────────────────────────────
-app.use("/registry", registryRoutes);
-app.use("/consensus", consensusRoutes);
+app.use("/registry",    registryRoutes);
+app.use("/consensus",   consensusRoutes);
+app.use("/blockchain",  blockchainRoutes);   // NEW
 
 // ── Health check ─────────────────────────────────────────────
 app.get("/health", (req, res) => {
   res.json({
-    status: "ok",
+    status:    "ok",
     timestamp: new Date().toISOString(),
     contracts: {
-      deviceRegistry: process.env.DEVICE_REGISTRY_ADDRESS,
+      deviceRegistry:  process.env.DEVICE_REGISTRY_ADDRESS,
       sensorConsensus: process.env.SENSOR_CONSENSUS_ADDRESS
     }
   });
@@ -40,23 +44,25 @@ app.get("/health", (req, res) => {
 // ── API reference ────────────────────────────────────────────
 app.get("/", (req, res) => {
   res.json({
-    name: "IoT Blockchain Backend",
-    version: "1.0.0",
+    name:    "IoT Blockchain Backend",
+    version: "1.1.0",
     endpoints: {
       health: "GET /health",
+
       registry: {
-        stats:           "GET  /registry/stats",
-        allDevices:      "GET  /registry/devices",
-        deviceInfo:      "GET  /registry/devices/:address",
-        verifyDevice:    "GET  /registry/devices/:address/verify",
-        isRegistered:    "GET  /registry/devices/:address/registered",
-        firmware:        "GET  /registry/devices/:address/firmware",
-        verifyFirmware:  "GET  /registry/devices/:address/verify-firmware?hash=0x...",
-        register:        "POST /registry/devices/register",
-        updateFirmware:  "POST /registry/devices/:address/update-firmware",
-        deactivate:      "POST /registry/devices/:address/deactivate",
-        reactivate:      "POST /registry/devices/:address/reactivate"
+        stats:          "GET  /registry/stats",
+        allDevices:     "GET  /registry/devices",
+        deviceInfo:     "GET  /registry/devices/:address",
+        verifyDevice:   "GET  /registry/devices/:address/verify",
+        isRegistered:   "GET  /registry/devices/:address/registered",
+        firmware:       "GET  /registry/devices/:address/firmware",
+        verifyFirmware: "GET  /registry/devices/:address/verify-firmware?hash=0x...",
+        register:       "POST /registry/devices/register",
+        updateFirmware: "POST /registry/devices/:address/update-firmware",
+        deactivate:     "POST /registry/devices/:address/deactivate",
+        reactivate:     "POST /registry/devices/:address/reactivate"
       },
+
       consensus: {
         stats:           "GET  /consensus/stats",
         latest:          "GET  /consensus/latest",
@@ -64,6 +70,7 @@ app.get("/", (req, res) => {
         allRounds:       "GET  /consensus/rounds",
         currentRound:    "GET  /consensus/rounds/current",
         roundById:       "GET  /consensus/rounds/:id",
+        roundExplain:    "GET  /consensus/rounds/:id/explain",   // NEW
         readingBySensor: "GET  /consensus/rounds/:id/reading/:sensor",
         events:          "GET  /consensus/events?fromBlock=0",
         submit:          "POST /consensus/submit",
@@ -73,6 +80,14 @@ app.get("/", (req, res) => {
         setMinSensors:   "POST /consensus/settings/min-sensors",
         setWindow:       "POST /consensus/settings/consensus-window",
         setRegistry:     "POST /consensus/settings/device-registry"
+      },
+
+      // ── NEW ──────────────────────────────────────────────
+      blockchain: {
+        network:  "GET /blockchain/network",
+        latest:   "GET /blockchain/latest",
+        block:    "GET /blockchain/block/:number",
+        tx:       "GET /blockchain/tx/:hash"
       }
     }
   });
@@ -93,7 +108,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("  IoT Blockchain Backend");
+  console.log("  IoT Blockchain Backend v1.1.0");
   console.log(`  Running on http://localhost:${PORT}`);
   console.log(`  Ganache RPC: ${process.env.RPC_URL}`);
   console.log(`  DeviceRegistry:   ${process.env.DEVICE_REGISTRY_ADDRESS}`);
@@ -101,5 +116,6 @@ app.listen(PORT, () => {
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log(`  API reference:    http://localhost:${PORT}/`);
   console.log(`  Health check:     http://localhost:${PORT}/health`);
+  console.log(`  Blockchain:       http://localhost:${PORT}/blockchain/network`);
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 });

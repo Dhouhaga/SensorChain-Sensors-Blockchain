@@ -6,8 +6,7 @@ const QString ApiClient::BASE_URL = "http://localhost:3000";
 ApiClient::ApiClient(QObject *parent)
     : QObject(parent)
     , m_manager(new QNetworkAccessManager(this))
-{
-}
+{}
 
 // ============================================================
 // HTTP HELPERS
@@ -292,5 +291,49 @@ void ApiClient::setDeviceRegistry(const QString &registryAddress)
     body["registryAddress"] = registryAddress;
     post("/consensus/settings/device-registry", body, [this](QJsonObject obj) {
         emit deviceRegistrySet(obj["data"].toObject());
+    });
+}
+
+// ============================================================
+// CONSENSUS EXPLANATION  (NEW)
+// ============================================================
+
+void ApiClient::getConsensusExplain(int roundId)
+{
+    get("/consensus/rounds/" + QString::number(roundId) + "/explain",
+        [this](QJsonObject obj) {
+            emit consensusExplainReady(obj["data"].toObject());
+        });
+}
+
+// ============================================================
+// BLOCKCHAIN INSPECTOR  (NEW)
+// ============================================================
+
+void ApiClient::getBlockchainNetwork()
+{
+    get("/blockchain/network", [this](QJsonObject obj) {
+        emit blockchainNetworkReady(obj["data"].toObject());
+    });
+}
+
+void ApiClient::getBlockchainLatest()
+{
+    get("/blockchain/latest", [this](QJsonObject obj) {
+        emit blockchainLatestReady(obj["data"].toObject());
+    });
+}
+
+void ApiClient::getBlockchainBlock(int blockNumber)
+{
+    get("/blockchain/block/" + QString::number(blockNumber), [this](QJsonObject obj) {
+        emit blockchainBlockReady(obj["data"].toObject());
+    });
+}
+
+void ApiClient::getBlockchainTx(const QString &txHash)
+{
+    get("/blockchain/tx/" + txHash, [this](QJsonObject obj) {
+        emit blockchainTxReady(obj["data"].toObject());
     });
 }
