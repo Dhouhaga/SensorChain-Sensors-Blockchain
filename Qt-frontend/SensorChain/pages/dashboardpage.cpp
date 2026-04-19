@@ -202,8 +202,8 @@ void DashboardPage::onLatestConsensus(QJsonObject data)
     QString faulty  = data["faultyCount"].toString("--");
     QString ts      = data["timestamp"].toString("0");
 
-    m_consensusBig->setText(val);
-    m_consensusTempLabel->setText(scaled + " °C  (raw value ÷ 100)");
+    m_consensusBig->setText(scaled + " °C");
+    m_consensusTempLabel->setText("Consensus Temperature Result");
     m_trustedCountLabel->setText(trusted);
 
     // Color faulty count

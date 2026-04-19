@@ -61,7 +61,7 @@ void SensorsPage::setupUi()
     submitLayout->addLayout(formLayout);
 
     // Value slider + spinbox
-    QGroupBox *valueGroup = new QGroupBox("Temperature Value (×100)");
+    QGroupBox *valueGroup = new QGroupBox("Temperature Value (°C)");
     QVBoxLayout *valueLayout = new QVBoxLayout(valueGroup);
 
     m_valueTempLabel = new QLabel("25.00 °C");
@@ -69,14 +69,14 @@ void SensorsPage::setupUi()
     m_valueTempLabel->setStyleSheet("color: #4c6ef5; font-size: 22px; font-weight: bold;");
 
     m_valueSlider = new QSlider(Qt::Horizontal);
-    m_valueSlider->setRange(-5000, 10000);  // -50.00 to 100.00 °C
+    m_valueSlider->setRange(-50, 100);  // -50.00 to 100.00 °C
     m_valueSlider->setValue(2500);
     m_valueSlider->setTickInterval(500);
 
     m_valueSpinBox = new QSpinBox();
     m_valueSpinBox->setRange(-5000, 10000);
     m_valueSpinBox->setValue(2500);
-    m_valueSpinBox->setSuffix("  (÷100 = °C)");
+    m_valueSpinBox->setSuffix(" °C");
 
     QLabel *rangeLabel = new QLabel("-50.00 °C  ←  slider  →  100.00 °C");
     rangeLabel->setAlignment(Qt::AlignCenter);
@@ -222,7 +222,7 @@ void SensorsPage::onSliderChanged(int value)
     m_valueSpinBox->blockSignals(true);
     m_valueSpinBox->setValue(value);
     m_valueSpinBox->blockSignals(false);
-    m_valueTempLabel->setText(QString::number(value / 100.0, 'f', 2) + " °C");
+    m_valueTempLabel->setText(QString::number(value, 'f', 2) + " °C");
 }
 
 void SensorsPage::onSpinChanged(int value)
@@ -230,13 +230,13 @@ void SensorsPage::onSpinChanged(int value)
     m_valueSlider->blockSignals(true);
     m_valueSlider->setValue(value);
     m_valueSlider->blockSignals(false);
-    m_valueTempLabel->setText(QString::number(value / 100.0, 'f', 2) + " °C");
+    m_valueTempLabel->setText(QString::number(value, 'f', 2) + " °C");
 }
 
 void SensorsPage::onSubmitClicked()
 {
     QString addr     = m_sensorDropdown->currentData().toString();
-    int     value    = m_valueSpinBox->value();
+    int value = m_valueSpinBox->value() * 100;
     QString firmware = m_firmwareHashInput->text().trimmed();
 
     if (addr.isEmpty() || firmware.isEmpty()) {
@@ -263,7 +263,7 @@ void SensorsPage::onReadingSubmitted(QJsonObject receipt)
     text += "Block:     " + receipt["blockNumber"].toString() + "\n";
     text += "Gas Used:  " + receipt["gasUsed"].toString() + "\n";
     text += "Sensor:    " + receipt["sensorAddress"].toString() + "\n";
-    text += "Value:     " + receipt["value"].toString() + "  (" + receipt["valueScaled"].toString() + " °C)\n";
+    text += "Value:     " + receipt["valueScaled"].toString() + " °C\n";
     m_resultDisplay->setText(text);
 
     // Refresh round participants
@@ -298,7 +298,7 @@ void SensorsPage::onCurrentRound(QJsonObject data)
         m_participantsTable->insertRow(i);
         m_participantsTable->setItem(i, 0, new QTableWidgetItem(addr));
 
-        QString displayVal = (val == "--" || val.isEmpty()) ? "--" : val + "  (" + scaled + " °C)";
+        QString displayVal = (val == "--" || val.isEmpty()) ? "--" : scaled + " °C";
         m_participantsTable->setItem(i, 1, new QTableWidgetItem(displayVal));
 
         QTableWidgetItem *statusItem;
@@ -318,7 +318,7 @@ void SensorsPage::onReadingReady(QJsonObject reading)
     QString text;
     text += "=== Reading ===\n";
     text += "Sensor:    " + reading["sensor"].toString() + "\n";
-    text += "Value:     " + reading["value"].toString() + "  (" + reading["valueScaled"].toString() + " °C)\n";
+    text += "Value:     " + reading["valueScaled"].toString() + " °C\n";
     text += "Timestamp: " + reading["timestamp"].toString() + "\n";
     text += "Faulty:    " + QString(reading["isFaulty"].toBool() ? "YES" : "NO") + "\n";
     m_lookupDisplay->setText(text);

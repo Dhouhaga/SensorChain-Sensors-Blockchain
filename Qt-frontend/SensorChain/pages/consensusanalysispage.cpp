@@ -205,7 +205,7 @@ void ConsensusAnalysisPage::populateSensorTable(const QJsonObject &step2)
         bool    faulty = s["isFaulty"].toBool();
         QString status = faulty ? "FAULTY" : "TRUSTED";
 
-        m_sensorTable->setItem(row, 0, new QTableWidgetItem(addr.left(12) + "…"));
+        m_sensorTable->setItem(row, 0, new QTableWidgetItem(addr));
         m_sensorTable->setItem(row, 1, new QTableWidgetItem(val));
         m_sensorTable->setItem(row, 2, new QTableWidgetItem(score));
 
@@ -237,9 +237,8 @@ void ConsensusAnalysisPage::populateAlgorithmText(const QJsonObject &data)
     for (const auto &sv : inputs["sensors"].toArray()) {
         QJsonObject s = sv.toObject();
         out += QString("  [%1…]  →  %2 °C  (raw: %3)\n")
-                   .arg(s["address"].toString().left(12))
-                   .arg(s["valueScaled"].toString())
-                   .arg(s["valueRaw"].toString());
+                   .arg(s["address"].toString())
+                   .arg(s["valueScaled"].toString());
     }
 
     // ── Pairwise comparisons ──────────────────────────────────
@@ -293,7 +292,7 @@ void ConsensusAnalysisPage::populateAlgorithmText(const QJsonObject &data)
     for (const auto &tv : step4["trustedSensors"].toArray()) {
         QJsonObject t = tv.toObject();
         out += QString("    %1…  =  %2°C\n")
-                   .arg(t["address"].toString().left(12))
+                   .arg(t["address"].toString())
                    .arg(t["valueScaled"].toString());
     }
     out += QString("\n  Sum = %1  →  Average = %2°C\n")

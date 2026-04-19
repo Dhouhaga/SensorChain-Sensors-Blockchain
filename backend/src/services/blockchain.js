@@ -66,7 +66,57 @@ function formatDevice(d) {
   };
 }
 
-function formatRound(r) {
+async function formatRound(r, roundId) {
+  // Helper function to convert array-like objects to real arrays
+  function toArray(arr) {
+    if (!arr) return [];
+    if (Array.isArray(arr)) return arr;
+    if (typeof arr === 'object' && arr.length !== undefined) {
+      const result = [];
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i] !== undefined && arr[i] !== null) {
+          result.push(arr[i]);
+        }
+      }
+      return result;
+    }
+    return [];
+  }
+
+  // Extract arrays from the struct
+  let participants = toArray(r.participants);
+  let values = toArray(r.values);
+  const disagreementScores = toArray(r.disagreementScores);
+  const faultyFlags = toArray(r.faultyFlags);
+
+  // CRITICAL FIX: If values are missing but participants exist, fetch from roundReadings
+  if (values.length === 0 && participants.length > 0 && roundId) {
+    console.log(`Values missing for round ${roundId}, fetching from getReading...`);
+    const fetchedValues = [];
+    for (const sensor of participants) {
+      try {
+        const reading = await consensusRead.getReading(roundId, sensor);
+        fetchedValues.push(reading.value.toString());
+      } catch (err) {
+        console.error(`Failed to get reading for ${sensor}:`, err.message);
+        fetchedValues.push("0");
+      }
+    }
+    values = fetchedValues;
+  }
+
+  console.log('formatRound debug:', {
+    roundId,
+    participantsCount: participants.length,
+    valuesCount: values.length,
+    scoresCount: disagreementScores.length,
+    flagsCount: faultyFlags.length,
+  });
+
+  // Convert BigNumber values to strings
+  const valuesStr = values.map(v => v ? (v.toString ? v.toString() : String(v)) : "0");
+  const scoresStr = disagreementScores.map(s => s ? (s.toString ? s.toString() : String(s)) : "0");
+
   return {
     roundId:              r.roundId.toString(),
     timestamp:            r.timestamp.toString(),
@@ -76,17 +126,17 @@ function formatRound(r) {
     trustedParticipants:  r.trustedParticipants.toString(),
     faultyCount:          r.faultyCount.toString(),
     consensusReached:     r.consensusReached,
-    participants:         r.participants,
-    values:               r.values.map(v => v.toString()),
-    valuesScaled:         r.values.map(v => (Number(v) / 100).toFixed(2)),
-    disagreementScores:   r.disagreementScores.map(s => s.toString()),
-    faultyFlags:          r.faultyFlags,
-    sensors: r.participants.map((addr, i) => ({
+    participants:         participants,
+    values:               valuesStr,
+    valuesScaled:         valuesStr.map(v => (Number(v) / 100).toFixed(2)),
+    disagreementScores:   scoresStr,
+    faultyFlags:          faultyFlags,
+    sensors: participants.map((addr, i) => ({
       address:           addr,
-      value:             r.values[i].toString(),
-      valueScaled:       (Number(r.values[i]) / 100).toFixed(2),
-      disagreementScore: r.disagreementScores[i].toString(),
-      isFaulty:          r.faultyFlags[i]
+      value:             valuesStr[i] || "0",
+      valueScaled:       valuesStr[i] ? (Number(valuesStr[i]) / 100).toFixed(2) : "0.00",
+      disagreementScore: scoresStr[i] || "0",
+      isFaulty:          faultyFlags[i] || false
     }))
   };
 }
@@ -167,7 +217,7 @@ function decodeLogs(receipt) {
 }
 
 // ============================================================
-// BLOCKCHAIN INSPECTION (new)
+// BLOCKCHAIN INSPECTION
 // ============================================================
 
 /**
@@ -264,7 +314,7 @@ async function getNetworkInfo() {
 }
 
 // ============================================================
-// DEVICE REGISTRY — WRITE  (now returns enriched receipts)
+// DEVICE REGISTRY — WRITE
 // ============================================================
 
 async function registerDevice(deviceAddress, firmwareHash, firmwareVersion, deviceType) {
@@ -348,7 +398,7 @@ async function getRegistryStats() {
 }
 
 // ============================================================
-// SENSOR CONSENSUS — WRITE (sensor)  (enriched receipt)
+// SENSOR CONSENSUS — WRITE (sensor)
 // ============================================================
 
 async function submitReading(sensorAddress, value, firmwareHash) {
@@ -380,7 +430,7 @@ async function submitReading(sensorAddress, value, firmwareHash) {
 }
 
 // ============================================================
-// SENSOR CONSENSUS — WRITE (admin)  (enriched receipts)
+// SENSOR CONSENSUS — WRITE (admin)
 // ============================================================
 
 async function forceNewRound() {
@@ -474,7 +524,7 @@ async function getLatestRound() {
 
 async function getConsensusRound(roundId) {
   const r = await consensusRead.getConsensusRound(roundId);
-  return formatRound(r);
+  return await formatRound(r, roundId);
 }
 
 async function getCurrentRoundParticipants() {
@@ -552,14 +602,14 @@ async function getAllRounds() {
   for (let i = 1; i <= total; i++) {
     try {
       const r = await consensusRead.getConsensusRound(i);
-      rounds.push(formatRound(r));
+      rounds.push(await formatRound(r, i));
     } catch { /* not yet finalised */ }
   }
   return rounds;
 }
 
 // ============================================================
-// CONSENSUS EXPLANATION  (new)
+// CONSENSUS EXPLANATION
 // ============================================================
 
 /**
@@ -573,9 +623,17 @@ async function getAllRounds() {
 async function explainConsensusRound(roundId) {
   // 1. Fetch the stored round (already includes scores + flags)
   const raw = await consensusRead.getConsensusRound(roundId);
-  const r   = formatRound(raw);
+  const r = await formatRound(raw, roundId);
 
-  const count          = r.participants.length;
+  console.log('Explained round data:', {
+    roundId: r.roundId,
+    participantCount: r.participants.length,
+    valuesCount: r.values.length,
+    firstValue: r.values[0],
+    firstValueScaled: r.valuesScaled[0]
+  });
+
+  const count = r.participants.length;
   const faultyThreshRaw = Number(await consensusRead.faultyThresholdUnits());
   const scoreThreshold = faultyThreshRaw * (count - 1);
 
@@ -583,14 +641,14 @@ async function explainConsensusRound(roundId) {
   const pairwiseComparisons = [];
   for (let i = 0; i < count - 1; i++) {
     for (let j = i + 1; j < count; j++) {
-      const vi   = Number(r.values[i]);
-      const vj   = Number(r.values[j]);
+      const vi = Number(r.values[i]);
+      const vj = Number(r.values[j]);
       const diff = Math.abs(vi - vj);
       pairwiseComparisons.push({
-        sensorA:       r.participants[i],
-        sensorAValue:  r.valuesScaled[i],
-        sensorB:       r.participants[j],
-        sensorBValue:  r.valuesScaled[j],
+        sensorA: r.participants[i],
+        sensorAValue: r.valuesScaled[i],
+        sensorB: r.participants[j],
+        sensorBValue: r.valuesScaled[j],
         differenceRaw: diff.toString(),
         differenceScaled: (diff / 100).toFixed(2)
       });
@@ -599,17 +657,17 @@ async function explainConsensusRound(roundId) {
 
   // 3. Per-sensor analysis
   const sensorAnalysis = r.participants.map((addr, i) => {
-    const scoreRaw    = Number(r.disagreementScores[i]);
-    const isFaulty    = r.faultyFlags[i];
-    const excess      = isFaulty ? scoreRaw - scoreThreshold : 0;
+    const scoreRaw = Number(r.disagreementScores[i]);
+    const isFaulty = r.faultyFlags[i];
+    const excess = isFaulty ? scoreRaw - scoreThreshold : 0;
     return {
-      address:           addr,
-      submittedValue:    r.valuesScaled[i],
+      address: addr,
+      submittedValue: r.valuesScaled[i],
       submittedValueRaw: r.values[i],
-      disagreementScore:        scoreRaw.toString(),
-      disagreementScoreScaled:  (scoreRaw / 100).toFixed(2),
-      scoreThreshold:           scoreThreshold.toString(),
-      scoreThresholdScaled:     (scoreThreshold / 100).toFixed(2),
+      disagreementScore: scoreRaw.toString(),
+      disagreementScoreScaled: (scoreRaw / 100).toFixed(2),
+      scoreThreshold: scoreThreshold.toString(),
+      scoreThresholdScaled: (scoreThreshold / 100).toFixed(2),
       isFaulty,
       verdict: isFaulty
         ? `FAULTY — score ${(scoreRaw/100).toFixed(2)} exceeds threshold ${(scoreThreshold/100).toFixed(2)} by ${(excess/100).toFixed(2)}`
@@ -618,24 +676,13 @@ async function explainConsensusRound(roundId) {
   });
 
   // 4. Trusted average reconstruction
-  const trustedValues = r.participants
-    .filter((_, i) => !r.faultyFlags[i])
-    .map((_, idx) => {
-      const realIdx = r.participants.findIndex(
-        (_, ii) => !r.faultyFlags[ii]
-          ? (r.participants.filter((__, jj) => !r.faultyFlags[jj]).indexOf(r.participants[ii]) === idx)
-          : false
-      );
-      return null; // placeholder — use sensorAnalysis instead
-    });
-
   const trustedSensors = sensorAnalysis.filter(s => !s.isFaulty);
-  const trustedSum     = trustedSensors.reduce((acc, s) => acc + Number(s.submittedValueRaw), 0);
-  const trustedAvgRaw  = trustedSensors.length > 0 ? Math.trunc(trustedSum / trustedSensors.length) : 0;
+  const trustedSum = trustedSensors.reduce((acc, s) => acc + Number(s.submittedValueRaw), 0);
+  const trustedAvgRaw = trustedSensors.length > 0 ? Math.trunc(trustedSum / trustedSensors.length) : 0;
 
   // 5. Fetch the consensus event for txHash + blockNumber traceability
   const toBlock = "latest";
-  let txTrace   = null;
+  let txTrace = null;
   try {
     const eventFilter = r.consensusReached
       ? consensusRead.filters.ConsensusReached(roundId)
@@ -643,15 +690,15 @@ async function explainConsensusRound(roundId) {
 
     const events = await consensusRead.queryFilter(eventFilter, 0, toBlock);
     if (events.length > 0) {
-      const ev    = events[0];
+      const ev = events[0];
       const block = await provider.getBlock(ev.blockNumber);
       txTrace = {
-        transactionHash:  ev.transactionHash,
-        blockNumber:      ev.blockNumber,
-        blockHash:        ev.blockHash,
-        blockTimestamp:   block.timestamp.toString(),
+        transactionHash: ev.transactionHash,
+        blockNumber: ev.blockNumber,
+        blockHash: ev.blockHash,
+        blockTimestamp: block.timestamp.toString(),
         blockTimestampISO: new Date(block.timestamp * 1000).toISOString(),
-        eventName:        r.consensusReached ? "ConsensusReached" : "ConsensusRejected"
+        eventName: r.consensusReached ? "ConsensusReached" : "ConsensusRejected"
       };
     }
   } catch { /* event lookup is best-effort */ }
@@ -660,38 +707,34 @@ async function explainConsensusRound(roundId) {
   return {
     roundId: r.roundId,
 
-    // ── Inputs ──────────────────────────────────────────────
     inputs: {
       sensorCount: count,
       sensors: r.participants.map((addr, i) => ({
-        address:     addr,
-        valueRaw:    r.values[i],
+        address: addr,
+        valueRaw: r.values[i],
         valueScaled: r.valuesScaled[i]
       }))
     },
 
-    // ── Algorithm: step 1 ────────────────────────────────────
     step1_pairwiseComparisons: {
       description: "For every pair (i,j): diff = |value_i - value_j|. Both sensors accumulate diff in their disagreement score.",
-      totalPairs:  pairwiseComparisons.length,
-      pairs:       pairwiseComparisons
+      totalPairs: pairwiseComparisons.length,
+      pairs: pairwiseComparisons
     },
 
-    // ── Algorithm: step 2 ────────────────────────────────────
     step2_faultDetection: {
       description: "A sensor is FAULTY if its total disagreement score exceeds faultyThresholdUnits × (count−1).",
-      faultyThresholdUnits:  faultyThreshRaw.toString(),
+      faultyThresholdUnits: faultyThreshRaw.toString(),
       faultyThresholdScaled: (faultyThreshRaw / 100).toFixed(2),
-      scoreThresholdRaw:     scoreThreshold.toString(),
-      scoreThresholdScaled:  (scoreThreshold / 100).toFixed(2),
-      formula:               `threshold = ${faultyThreshRaw} × (${count}−1) = ${scoreThreshold}`,
-      sensors:               sensorAnalysis
+      scoreThresholdRaw: scoreThreshold.toString(),
+      scoreThresholdScaled: (scoreThreshold / 100).toFixed(2),
+      formula: `threshold = ${faultyThreshRaw} × (${count}−1) = ${scoreThreshold}`,
+      sensors: sensorAnalysis
     },
 
-    // ── Algorithm: step 3 ────────────────────────────────────
     step3_safetyCheck: {
       description: "Round is REJECTED if faultyCount > totalCount / 2 (majority faulty).",
-      totalSensors:  count,
+      totalSensors: count,
       faultySensors: Number(r.faultyCount),
       majorityLimit: Math.floor(count / 2),
       roundRejected: !r.consensusReached && Number(r.faultyCount) > 0,
@@ -700,39 +743,36 @@ async function explainConsensusRound(roundId) {
         : `PASSED — ${r.faultyCount} faulty sensors within majority limit of ${Math.floor(count/2)}`
     },
 
-    // ── Algorithm: step 4 ────────────────────────────────────
     step4_trustedAverage: {
       description: "Consensus value = average of non-faulty sensor readings only.",
       trustedSensors: trustedSensors.map(s => ({
-        address:  s.address,
+        address: s.address,
         valueRaw: s.submittedValueRaw,
         valueScaled: s.submittedValue
       })),
-      trustedCount:           trustedSensors.length,
-      trustedSumRaw:          trustedSum.toString(),
-      computedAverageRaw:     trustedAvgRaw.toString(),
-      computedAverageScaled:  (trustedAvgRaw / 100).toFixed(2),
-      storedConsensusRaw:     r.consensusValue,
-      storedConsensusScaled:  r.consensusValueScaled
+      trustedCount: trustedSensors.length,
+      trustedSumRaw: trustedSum.toString(),
+      computedAverageRaw: trustedAvgRaw.toString(),
+      computedAverageScaled: (trustedAvgRaw / 100).toFixed(2),
+      storedConsensusRaw: r.consensusValue,
+      storedConsensusScaled: r.consensusValueScaled
     },
 
-    // ── Result ───────────────────────────────────────────────
     result: {
-      consensusReached:     r.consensusReached,
-      consensusValue:       r.consensusValue,
+      consensusReached: r.consensusReached,
+      consensusValue: r.consensusValue,
       consensusValueScaled: r.consensusValueScaled,
-      trustedParticipants:  r.trustedParticipants,
-      faultyCount:          r.faultyCount,
-      totalParticipants:    r.totalParticipants
+      trustedParticipants: r.trustedParticipants,
+      faultyCount: r.faultyCount,
+      totalParticipants: r.totalParticipants
     },
 
-    // ── Blockchain traceability ───────────────────────────────
     blockchainTrace: txTrace
   };
 }
 
 // ============================================================
-// EVENT HISTORY  (enhanced — adds blockHash + blockTimestamp)
+// EVENT HISTORY
 // ============================================================
 
 async function getEventHistory(fromBlock = 0) {
@@ -924,9 +964,9 @@ module.exports = {
   getReading,
   getConsensusStats,
   getAllRounds,
-  // Consensus explanation (new)
+  // Consensus explanation
   explainConsensusRound,
-  // Blockchain inspection (new)
+  // Blockchain inspection
   getLatestBlock,
   getBlockByNumber,
   getTransactionDetails,

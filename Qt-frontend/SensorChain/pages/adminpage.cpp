@@ -321,15 +321,22 @@ void AdminPage::onConsensusStats(QJsonObject data)
     m_currentRoundIdLabel->setText(data["currentRoundId"].toString());
     m_totalRoundsLabel->setText(data["totalRounds"].toString());
     m_minSensorsLabel->setText(data["minSensorsForConsensus"].toString());
-    m_thresholdLabel->setText(data["faultyThresholdUnits"].toString()
-                              + "  (" + data["faultyThresholdScaled"].toString() + "°)");
+    m_thresholdLabel->setText(data["faultyThresholdScaled"].toString() + " °C");
     m_windowLabel->setText(data["consensusWindow"].toString() + " seconds");
 
-    // Pre-fill settings inputs with current values
-    m_thresholdInput->setValue(data["faultyThresholdUnits"].toString("500").toInt());
-    m_minSensorsInput->setValue(data["minSensorsForConsensus"].toString("3").toInt());
-    m_windowInput->setValue(data["consensusWindow"].toString("3600").toInt());
-    m_registryAddressInput->setText(data["linkedRegistryAddress"].toString());
+    // ONLY update input fields if they are NOT currently being edited by the user
+    if (!m_thresholdInput->hasFocus()) {
+        m_thresholdInput->setValue(data["faultyThresholdUnits"].toString("500").toInt());
+    }
+    if (!m_minSensorsInput->hasFocus()) {
+        m_minSensorsInput->setValue(data["minSensorsForConsensus"].toString("3").toInt());
+    }
+    if (!m_windowInput->hasFocus()) {
+        m_windowInput->setValue(data["consensusWindow"].toString("3600").toInt());
+    }
+    if (!m_registryAddressInput->hasFocus()) {
+        m_registryAddressInput->setText(data["linkedRegistryAddress"].toString());
+    }
 }
 
 void AdminPage::onError(QString endpoint, QString error)

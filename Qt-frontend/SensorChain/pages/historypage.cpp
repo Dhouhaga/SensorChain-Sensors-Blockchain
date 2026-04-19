@@ -59,18 +59,17 @@ QWidget *HistoryPage::buildRoundsTab()
     topBar->addWidget(m_lookupBtn);
     layout->addLayout(topBar);
 
-    // Rounds table
-    m_roundsTable = new QTableWidget(0, 7);
+    // Rounds table - 6 columns now (removed the raw value column)
+    m_roundsTable = new QTableWidget(0, 6);
     m_roundsTable->setHorizontalHeaderLabels({
-        "Round", "Consensus Value", "°C", "Trusted", "Faulty", "Status", "Timestamp"
+        "Round", "Consensus Value (°C)", "Trusted", "Faulty", "Status", "Timestamp"
     });
     m_roundsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_roundsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     m_roundsTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     m_roundsTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     m_roundsTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    m_roundsTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    m_roundsTable->horizontalHeader()->setSectionResizeMode(6, QHeaderView::Stretch);
+    m_roundsTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Stretch);
     m_roundsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_roundsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_roundsTable->setMaximumHeight(220);
@@ -84,15 +83,15 @@ QWidget *HistoryPage::buildRoundsTab()
     m_roundSummaryLabel = new QLabel("");
     layout->addWidget(m_roundSummaryLabel);
 
-    m_sensorBreakdownTable = new QTableWidget(0, 5);
+    // Sensor breakdown table - 4 columns (removed raw value column)
+    m_sensorBreakdownTable = new QTableWidget(0, 4);
     m_sensorBreakdownTable->setHorizontalHeaderLabels({
-        "Sensor Address", "Value (×100)", "°C", "Disagreement Score", "Status"
+        "Sensor Address", "Value (°C)", "Disagreement Score", "Status"
     });
     m_sensorBreakdownTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_sensorBreakdownTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     m_sensorBreakdownTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     m_sensorBreakdownTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    m_sensorBreakdownTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     m_sensorBreakdownTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     layout->addWidget(m_sensorBreakdownTable, 1);
 
@@ -157,23 +156,22 @@ void HistoryPage::populateRoundsTable(const QJsonArray &rounds)
         QString status = reached ? "Reached" : "Rejected";
 
         m_roundsTable->setItem(i, 0, new QTableWidgetItem(r["roundId"].toString()));
-        m_roundsTable->setItem(i, 1, new QTableWidgetItem(r["consensusValue"].toString()));
-        m_roundsTable->setItem(i, 2, new QTableWidgetItem(r["consensusValueScaled"].toString() + " °C"));
-        m_roundsTable->setItem(i, 3, new QTableWidgetItem(r["trustedParticipants"].toString()));
+        m_roundsTable->setItem(i, 1, new QTableWidgetItem(r["consensusValueScaled"].toString() + " °C"));
+        m_roundsTable->setItem(i, 2, new QTableWidgetItem(r["trustedParticipants"].toString()));
 
         int faultyCount = r["faultyCount"].toString("0").toInt();
         QTableWidgetItem *faultyItem = new QTableWidgetItem(r["faultyCount"].toString());
         if (faultyCount > 0) faultyItem->setForeground(QColor("#c92a2a"));
         else faultyItem->setForeground(QColor("#2b8c4e"));
-        m_roundsTable->setItem(i, 4, faultyItem);
+        m_roundsTable->setItem(i, 3, faultyItem);  // Column index 3 now (was 4)
 
         QTableWidgetItem *statusItem = new QTableWidgetItem(status);
         statusItem->setForeground(reached ? QColor("#2b8c4e") : QColor("#c92a2a"));
-        m_roundsTable->setItem(i, 5, statusItem);
+        m_roundsTable->setItem(i, 4, statusItem);  // Column index 4 now (was 5)
 
         QString ts = r["timestamp"].toString("0");
         QDateTime dt = QDateTime::fromSecsSinceEpoch(ts.toLongLong());
-        m_roundsTable->setItem(i, 6, new QTableWidgetItem(dt.toString("dd/MM/yyyy  hh:mm:ss")));
+        m_roundsTable->setItem(i, 5, new QTableWidgetItem(dt.toString("dd/MM/yyyy  hh:mm:ss")));  // Column index 5 now (was 6)
     }
 }
 
@@ -200,10 +198,9 @@ void HistoryPage::populateRoundDetail(const QJsonObject &round)
     bool reached    = round["consensusReached"].toBool();
 
     m_roundDetailTitle->setText(
-        QString("Round %1 — %2  |  Consensus: %3 (%4 °C)  |  Trusted: %5  |  Faulty: %6")
+        QString("Round %1 — %2  |  Consensus: %3 °C  |  Trusted: %4  |  Faulty: %5")
             .arg(roundId)
             .arg(reached ? "Reached" : "Rejected")
-            .arg(round["consensusValue"].toString())
             .arg(round["consensusValueScaled"].toString())
             .arg(round["trustedParticipants"].toString())
             .arg(round["faultyCount"].toString())
@@ -220,17 +217,16 @@ void HistoryPage::populateRoundDetail(const QJsonObject &round)
         bool isFaulty = s["isFaulty"].toBool();
 
         m_sensorBreakdownTable->setItem(i, 0, new QTableWidgetItem(s["address"].toString()));
-        m_sensorBreakdownTable->setItem(i, 1, new QTableWidgetItem(s["value"].toString()));
-        m_sensorBreakdownTable->setItem(i, 2, new QTableWidgetItem(s["valueScaled"].toString() + " °C"));
-        m_sensorBreakdownTable->setItem(i, 3, new QTableWidgetItem(s["disagreementScore"].toString()));
+        m_sensorBreakdownTable->setItem(i, 1, new QTableWidgetItem(s["valueScaled"].toString() + " °C"));
+        m_sensorBreakdownTable->setItem(i, 2, new QTableWidgetItem(s["disagreementScore"].toString()));
 
         QTableWidgetItem *statusItem = new QTableWidgetItem(isFaulty ? "FAULTY" : "Trusted");
         statusItem->setForeground(isFaulty ? QColor("#c92a2a") : QColor("#2b8c4e"));
-        m_sensorBreakdownTable->setItem(i, 4, statusItem);
+        m_sensorBreakdownTable->setItem(i, 3, statusItem);  // Column index 3 now (was 4)
 
-        // Highlight entire row red if faulty
+        // Highlight entire row if faulty
         if (isFaulty) {
-            for (int c = 0; c < 5; c++) {
+            for (int c = 0; c < 4; c++) {  // Now 4 columns instead of 5
                 if (m_sensorBreakdownTable->item(i, c))
                     m_sensorBreakdownTable->item(i, c)->setBackground(QColor(255, 245, 245));
             }
@@ -266,9 +262,8 @@ void HistoryPage::populateEventTree(const QJsonObject &events)
 
     addCategory("ConsensusReached", events["consensusReached"].toArray(),
                 [](QJsonObject e) {
-                    return QString("Round %1  →  %2 (%3 °C)  |  Trusted: %4  Faulty: %5")
+                    return QString("Round %1  →  %2 °C  |  Trusted: %3  Faulty: %4")
                         .arg(e["roundId"].toString())
-                        .arg(e["consensusValue"].toString())
                         .arg(e["consensusValueScaled"].toString())
                         .arg(e["trustedParticipants"].toString())
                         .arg(e["faultyCount"].toString());
@@ -285,10 +280,9 @@ void HistoryPage::populateEventTree(const QJsonObject &events)
 
     addCategory("FaultySensorDetected", events["faultySensors"].toArray(),
                 [](QJsonObject e) {
-                    return QString("Round %1  |  Sensor: %2  |  Value: %3 (%4 °C)  |  Score: %5  >  Threshold: %6")
+                    return QString("Round %1  |  Sensor: %2  |  Value: %3 °C  |  Score: %4  >  Threshold: %5")
                         .arg(e["roundId"].toString())
                         .arg(e["sensor"].toString().left(12) + "...")
-                        .arg(e["submittedValue"].toString())
                         .arg(e["submittedValueScaled"].toString())
                         .arg(e["disagreementScore"].toString())
                         .arg(e["scoreThreshold"].toString());
@@ -296,10 +290,9 @@ void HistoryPage::populateEventTree(const QJsonObject &events)
 
     addCategory("ReadingSubmitted", events["readingsSubmitted"].toArray(),
                 [](QJsonObject e) {
-                    return QString("Round %1  |  Sensor: %2  |  Value: %3 (%4 °C)")
+                    return QString("Round %1  |  Sensor: %2  |  Value: %3 °C")
                         .arg(e["roundId"].toString())
                         .arg(e["sensor"].toString().left(12) + "...")
-                        .arg(e["value"].toString())
                         .arg(e["valueScaled"].toString());
                 }, QColor("#4c6ef5"));
 
