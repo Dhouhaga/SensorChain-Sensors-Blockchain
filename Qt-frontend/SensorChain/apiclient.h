@@ -7,19 +7,6 @@
 #include <QJsonDocument>
 #include <functional>
 
-/**
- * @class ApiClient
- *
- * Thin HTTP wrapper around the IoT Blockchain backend.
- *
- * ENHANCED (v1.1):
- *    All write-signal payloads now carry enriched transaction data
- *     (txHash, blockNumber, blockHash, from, to, gasUsed, gasPrice,
- *      status, confirmations, blockTimestamp, logsCount).
- *    New blockchain inspector signals  (blockchainLatestReady,
- *     blockchainBlockReady, blockchainTxReady, blockchainNetworkReady).
- *    New consensus explanation signal  (consensusExplainReady).
- */
 class ApiClient : public QObject
 {
     Q_OBJECT
