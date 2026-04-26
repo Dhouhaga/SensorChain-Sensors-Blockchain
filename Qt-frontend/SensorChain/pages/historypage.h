@@ -44,20 +44,18 @@ private:
 
     ApiClient *m_api;
 
-    // ── Rounds tab ───────────────────────────────────────────
+    //  Rounds tab 
     QTableWidget *m_roundsTable;
     QPushButton  *m_refreshBtn;
 
-    // Round lookup
     QSpinBox     *m_roundIdInput;
     QPushButton  *m_lookupBtn;
 
-    // Per-sensor breakdown for selected round
     QLabel       *m_roundDetailTitle;
     QTableWidget *m_sensorBreakdownTable;
     QLabel       *m_roundSummaryLabel;
 
-    // ── Events tab ───────────────────────────────────────────
+    //  Events tab 
     QTreeWidget  *m_eventTree;
     QPushButton  *m_loadEventsBtn;
     QSpinBox     *m_fromBlockInput;

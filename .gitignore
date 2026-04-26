@@ -6,10 +6,23 @@ build/
 *.pro.user
 *.pyc
 
+# Qt generated files
+Qt-frontend/SensorChain/build/
+Qt-frontend/SensorChain/**/build*/
+
 # Node.js / Backend junk
 node_modules/
 .env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
 npm-debug.log*
+*.log
+
+# Package locks in nested dependencies
+**/node_modules/
 
 # OS junk
 Thumbs.db

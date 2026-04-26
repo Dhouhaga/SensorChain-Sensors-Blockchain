@@ -46,7 +46,6 @@ private:
 
     ApiClient *m_api;
 
-    // Submit panel
     QComboBox    *m_sensorDropdown;
     QLabel       *m_sensorAddressLabel;
     QLabel       *m_sensorFirmwareLabel;
@@ -57,20 +56,22 @@ private:
     QPushButton  *m_submitBtn;
     QLabel       *m_statusLabel;
 
-    // Last submission result
     QTextEdit    *m_resultDisplay;
 
-    // Reading lookup
     QSpinBox     *m_lookupRoundSpinBox;
     QLineEdit    *m_lookupSensorInput;
     QPushButton  *m_lookupBtn;
     QTextEdit    *m_lookupDisplay;
 
-    // Current round participants
     QTableWidget *m_participantsTable;
 
-    // Sensor address → firmware hash map (populated from getAllDevices)
+    // Sensor address  firmware hash map (populated from getAllDevices)
     QMap<QString, QString> m_sensorFirmwareMap;
+    QMap<QString, bool> m_sensorActiveMap;
+
+    void showTransactionFailureDialog(const QString &txHash, const QString &reason, const QString &errorMsg);
+    void showTransactionSuccessDialog(const QString &txHash, int blockNumber, const QString &gasUsed,
+                                      const QString &sensorAddress, const QString &value);
 };
 
 #endif // SENSORSPAGE_H

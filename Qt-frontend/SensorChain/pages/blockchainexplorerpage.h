@@ -18,10 +18,10 @@
  * @class BlockchainExplorerPage
  *
  * Provides three tabs:
- *   1. Blocks  — latest block summary + block-by-number lookup
- *   2. Transactions — tx hash lookup + decoded log viewer
- *   3. Events  — unified event table (all contracts) with
- *                full event → tx → block traceability
+ *   1. Blocks   latest block summary + block-by-number lookup
+ *   2. Transactions  tx hash lookup + decoded log viewer
+ *   3. Events   unified event table (all contracts) with
+ *                full event  tx  block traceability
  */
 class BlockchainExplorerPage : public QWidget
 {
@@ -34,30 +34,25 @@ public:
     void refresh();
 
 private slots:
-    // Network / latest block
     void onNetworkReady(QJsonObject data);
     void onLatestBlockReady(QJsonObject data);
 
-    // Block lookup
     void onFetchBlock();
     void onBlockReady(QJsonObject data);
 
-    // Tx lookup
     void onFetchTx();
     void onTxReady(QJsonObject data);
 
-    // Events
     void onRefreshEvents();
     void onEventHistoryReady(QJsonObject data);
 
-    // Error
     void onError(const QString &endpoint, const QString &msg);
 
 private:
     void setupUi();
     void setupConnections();
 
-    // ── helpers ─────────────────────────────────────────────
+    //  helpers 
     /** Render a QJsonObject as indented JSON in a QTextEdit. */
     static void showJson(QTextEdit *te, const QJsonObject &obj);
     /** Append a row to the events table. */
@@ -69,10 +64,10 @@ private:
 
     ApiClient *m_api;
 
-    // ── Tabs ─────────────────────────────────────────────────
+    //  Tabs 
     QTabWidget *m_tabs;
 
-    // ── Tab 1: Blocks ────────────────────────────────────────
+    //  Tab 1: Blocks 
     QLabel     *m_networkLabel;
     QLabel     *m_latestBlockNum;
     QLabel     *m_latestBlockHash;
@@ -84,12 +79,12 @@ private:
     QPushButton *m_fetchBlockBtn;
     QTextEdit  *m_blockDetail;
 
-    // ── Tab 2: Transactions ──────────────────────────────────
+    //  Tab 2: Transactions 
     QLineEdit  *m_txHashInput;
     QPushButton *m_fetchTxBtn;
     QTextEdit  *m_txDetail;
 
-    // ── Tab 3: Events ────────────────────────────────────────
+    //  Tab 3: Events 
     QPushButton *m_refreshEventsBtn;
     QTableWidget *m_eventsTable;
 };

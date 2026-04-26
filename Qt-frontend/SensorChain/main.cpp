@@ -6,7 +6,6 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    // App-wide font
     QFont font("Segoe UI", 10);
     a.setFont(font);
 

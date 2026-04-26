@@ -1,21 +1,16 @@
-// ============================================================
-// routes/registry.js — All DeviceRegistry endpoints
-// ============================================================
+// routes/registry.js  All DeviceRegistry endpoints
 
 const express = require("express");
 const router = express.Router();
 const bc = require("../services/blockchain");
 
-// ── Helper: wrap async route handlers ───────────────────────
+//  Helper: wrap async route handlers 
 const wrap = fn => (req, res) =>
   fn(req, res).catch(err => {
     console.error(err);
     res.status(500).json({ success: false, error: err.reason || err.message });
   });
 
-// ============================================================
-// READ endpoints
-// ============================================================
 
 /**
  * GET /registry/stats
@@ -82,9 +77,6 @@ router.get("/devices/:address/verify-firmware", wrap(async (req, res) => {
   res.json({ success: true, data: { address: req.params.address, firmwareHash: hash, matches } });
 }));
 
-// ============================================================
-// WRITE endpoints (admin / owner only)
-// ============================================================
 
 /**
  * POST /registry/devices/register

@@ -57,11 +57,9 @@ private:
     QPushButton  *m_isRegisteredBtn;
     QPushButton  *m_getFirmwareBtn;
 
-    // Firmware verify
     QLineEdit    *m_firmwareHashInput;
     QPushButton  *m_verifyFirmwareBtn;
 
-    // Detail display
     QTextEdit    *m_detailDisplay;
 };
 

@@ -1,4 +1,3 @@
-// devicespage.cpp
 #include "devicespage.h"
 #include <QHeaderView>
 #include <QDateTime>
@@ -25,7 +24,6 @@ void DevicesPage::setupUi()
     mainLayout->setContentsMargins(24, 24, 24, 24);
     mainLayout->setSpacing(16);
 
-    // Header
     QLabel *title = new QLabel("Devices");
     title->setObjectName("pageTitle");
     QLabel *subtitle = new QLabel("Registered IoT devices and firmware verification");
@@ -36,7 +34,7 @@ void DevicesPage::setupUi()
     // Splitter: table left, query panel right
     QSplitter *splitter = new QSplitter(Qt::Horizontal);
 
-    // ── Left: all devices table ──────────────────────────────────────
+    //  Left: all devices table 
     QWidget *leftWidget = new QWidget();
     QVBoxLayout *leftLayout = new QVBoxLayout(leftWidget);
     leftLayout->setContentsMargins(0,0,0,0);
@@ -62,13 +60,12 @@ void DevicesPage::setupUi()
     m_devicesTable->setFocusPolicy(Qt::NoFocus);
     leftLayout->addWidget(m_devicesTable);
 
-    // ── Right: query panel ───────────────────────────────────────────
+    //  Right: query panel 
     QWidget *rightWidget = new QWidget();
     QVBoxLayout *rightLayout = new QVBoxLayout(rightWidget);
     rightLayout->setContentsMargins(8, 0, 0, 0);
     rightLayout->setSpacing(12);
 
-    // Address input (shared for all queries)
     QGroupBox *queryGroup = new QGroupBox("Query Device");
     QVBoxLayout *queryLayout = new QVBoxLayout(queryGroup);
 
@@ -94,7 +91,6 @@ void DevicesPage::setupUi()
     queryLayout->addLayout(btnRow1);
     queryLayout->addLayout(btnRow2);
 
-    // Firmware hash verify
     QGroupBox *firmwareGroup = new QGroupBox("Verify Firmware Hash");
     QVBoxLayout *firmwareLayout = new QVBoxLayout(firmwareGroup);
     QLabel *hashLbl = new QLabel("Firmware Hash (bytes32):");
@@ -105,7 +101,6 @@ void DevicesPage::setupUi()
     firmwareLayout->addWidget(m_firmwareHashInput);
     firmwareLayout->addWidget(m_verifyFirmwareBtn);
 
-    // Result display
     QGroupBox *resultGroup = new QGroupBox("Result");
     QVBoxLayout *resultLayout = new QVBoxLayout(resultGroup);
     m_detailDisplay = new QTextEdit();
@@ -125,7 +120,6 @@ void DevicesPage::setupUi()
 
     mainLayout->addWidget(splitter, 1);
 
-    // Connect buttons
     connect(m_refreshBtn,       &QPushButton::clicked, this, &DevicesPage::refresh);
     connect(m_getInfoBtn,       &QPushButton::clicked, this, &DevicesPage::onGetInfoClicked);
     connect(m_verifyBtn,        &QPushButton::clicked, this, &DevicesPage::onVerifyClicked);
@@ -217,7 +211,7 @@ void DevicesPage::onIsRegistered(QString address, bool isRegistered)
     m_detailDisplay->setText(
         "=== Is Registered ===\n"
         "Address: " + address + "\n"
-                    "Result:  " + QString(isRegistered ? "YES — device has been registered" : "NO — never registered")
+                    "Result:  " + QString(isRegistered ? "YES  device has been registered" : "NO  never registered")
         );
 }
 

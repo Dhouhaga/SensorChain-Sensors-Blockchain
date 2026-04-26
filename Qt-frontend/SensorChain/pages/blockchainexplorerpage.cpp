@@ -1,13 +1,9 @@
-// blockchainexplorerpage.cpp
 #include "blockchainexplorerpage.h"
 #include <QJsonDocument>
 #include <QHeaderView>
 #include <QDateTime>
 #include <QScrollArea>
 
-// ============================================================
-// Constructor
-// ============================================================
 
 BlockchainExplorerPage::BlockchainExplorerPage(ApiClient *api, QWidget *parent)
     : QWidget(parent)
@@ -17,9 +13,6 @@ BlockchainExplorerPage::BlockchainExplorerPage(ApiClient *api, QWidget *parent)
     setupConnections();
 }
 
-// ============================================================
-// Public
-// ============================================================
 
 void BlockchainExplorerPage::refresh()
 {
@@ -27,9 +20,6 @@ void BlockchainExplorerPage::refresh()
     m_api->getBlockchainLatest();
 }
 
-// ============================================================
-// UI setup
-// ============================================================
 
 void BlockchainExplorerPage::setupUi()
 {
@@ -37,7 +27,7 @@ void BlockchainExplorerPage::setupUi()
     root->setContentsMargins(24, 24, 24, 24);
     root->setSpacing(16);
 
-    // ── Page title ────────────────────────────────────────────
+    //  Page title 
     auto *titleLabel = new QLabel("Blockchain Explorer");
     titleLabel->setObjectName("pageTitle");
     auto *subtitleLabel = new QLabel("Inspect blocks, transactions, and contract events");
@@ -45,23 +35,20 @@ void BlockchainExplorerPage::setupUi()
     root->addWidget(titleLabel);
     root->addWidget(subtitleLabel);
 
-    // ── Tabs ──────────────────────────────────────────────────
+    //  Tabs 
     m_tabs = new QTabWidget();
     root->addWidget(m_tabs, 1);
 
-    // ─────────────────────────────────────────────────────────
     // TAB 1: Blocks
-    // ─────────────────────────────────────────────────────────
     auto *blocksTab    = new QWidget();
     auto *blocksLayout = new QVBoxLayout(blocksTab);
     blocksLayout->setContentsMargins(16, 16, 16, 16);
     blocksLayout->setSpacing(12);
 
-    // Network info strip
     auto *netBox    = new QGroupBox("Network");
     auto *netLayout = new QHBoxLayout(netBox);
-    m_networkLabel  = new QLabel("–");
-    m_gasPriceLabel = new QLabel("–");
+    m_networkLabel  = new QLabel("");
+    m_gasPriceLabel = new QLabel("");
     netLayout->addWidget(new QLabel("Chain:"));
     netLayout->addWidget(m_networkLabel);
     netLayout->addSpacing(24);
@@ -70,7 +57,6 @@ void BlockchainExplorerPage::setupUi()
     netLayout->addStretch();
     blocksLayout->addWidget(netBox);
 
-    // Latest block summary cards
     auto *latestBox    = new QGroupBox("Latest Block");
     auto *latestLayout = new QHBoxLayout(latestBox);
 
@@ -80,7 +66,7 @@ void BlockchainExplorerPage::setupUi()
         vl->setContentsMargins(12, 8, 12, 8);
         auto *t  = new QLabel(title);
         t->setObjectName("pageSubtitle");
-        valLabel = new QLabel("–");
+        valLabel = new QLabel("");
         valLabel->setObjectName("statValueSmall");
         valLabel->setWordWrap(true);
         vl->addWidget(t);
@@ -94,28 +80,25 @@ void BlockchainExplorerPage::setupUi()
     latestLayout->addWidget(makeCard("Tx Count",        m_latestBlockTxCount));
     blocksLayout->addWidget(latestBox);
 
-    // Block lookup
     auto *lookupBox    = new QGroupBox("Block Lookup");
     auto *lookupLayout = new QVBoxLayout(lookupBox);
     auto *inputRow     = new QHBoxLayout();
     m_blockNumberInput = new QLineEdit();
-    m_blockNumberInput->setPlaceholderText("Enter block number…");
+    m_blockNumberInput->setPlaceholderText("Enter block number");
     m_fetchBlockBtn    = new QPushButton("Fetch Block");
     m_fetchBlockBtn->setObjectName("primaryBtn");
     inputRow->addWidget(m_blockNumberInput, 1);
     inputRow->addWidget(m_fetchBlockBtn);
     m_blockDetail = new QTextEdit();
     m_blockDetail->setReadOnly(true);
-    m_blockDetail->setPlaceholderText("Block details appear here…");
+    m_blockDetail->setPlaceholderText("Block details appear here");
     lookupLayout->addLayout(inputRow);
     lookupLayout->addWidget(m_blockDetail, 1);
     blocksLayout->addWidget(lookupBox, 1);
 
     m_tabs->addTab(blocksTab, "Blocks");
 
-    // ─────────────────────────────────────────────────────────
     // TAB 2: Transactions
-    // ─────────────────────────────────────────────────────────
     auto *txTab    = new QWidget();
     auto *txLayout = new QVBoxLayout(txTab);
     txLayout->setContentsMargins(16, 16, 16, 16);
@@ -125,7 +108,7 @@ void BlockchainExplorerPage::setupUi()
     auto *txBoxLay = new QVBoxLayout(txBox);
     auto *txRow    = new QHBoxLayout();
     m_txHashInput  = new QLineEdit();
-    m_txHashInput->setPlaceholderText("Enter transaction hash (0x…)");
+    m_txHashInput->setPlaceholderText("Enter transaction hash (0x)");
     m_fetchTxBtn   = new QPushButton("Fetch Tx");
     m_fetchTxBtn->setObjectName("primaryBtn");
     txRow->addWidget(m_txHashInput, 1);
@@ -141,9 +124,7 @@ void BlockchainExplorerPage::setupUi()
 
     m_tabs->addTab(txTab, "Transactions");
 
-    // ─────────────────────────────────────────────────────────
     // TAB 3: Events
-    // ─────────────────────────────────────────────────────────
     auto *evTab    = new QWidget();
     auto *evLayout = new QVBoxLayout(evTab);
     evLayout->setContentsMargins(16, 16, 16, 16);
@@ -170,9 +151,6 @@ void BlockchainExplorerPage::setupUi()
     m_tabs->addTab(evTab, "Events");
 }
 
-// ============================================================
-// Connections
-// ============================================================
 
 void BlockchainExplorerPage::setupConnections()
 {
@@ -197,9 +175,6 @@ void BlockchainExplorerPage::setupConnections()
             this,               &BlockchainExplorerPage::onRefreshEvents);
 }
 
-// ============================================================
-// Slots
-// ============================================================
 
 void BlockchainExplorerPage::onNetworkReady(QJsonObject data)
 {
@@ -217,7 +192,7 @@ void BlockchainExplorerPage::onNetworkReady(QJsonObject data)
 void BlockchainExplorerPage::onLatestBlockReady(QJsonObject data)
 {
     m_latestBlockNum->setText(QString::number(data["blockNumber"].toInt()));
-    m_latestBlockHash->setText(data["blockHash"].toString().left(18) + "…");
+    m_latestBlockHash->setText(data["blockHash"].toString().left(18) + "");
     m_latestBlockTs->setText(data["timestampISO"].toString().replace("T", " ").left(19));
     m_latestBlockTxCount->setText(QString::number(data["transactionCount"].toInt()));
 }
@@ -230,7 +205,7 @@ void BlockchainExplorerPage::onFetchBlock()
     int num = text.toInt(&ok);
     if (!ok) { m_blockDetail->setPlainText("Invalid block number."); return; }
     m_fetchBlockBtn->setEnabled(false);
-    m_fetchBlockBtn->setText("Fetching…");
+    m_fetchBlockBtn->setText("Fetching");
     m_api->getBlockchainBlock(num);
 }
 
@@ -246,7 +221,7 @@ void BlockchainExplorerPage::onFetchTx()
     QString hash = m_txHashInput->text().trimmed();
     if (hash.isEmpty()) return;
     m_fetchTxBtn->setEnabled(false);
-    m_fetchTxBtn->setText("Fetching…");
+    m_fetchTxBtn->setText("Fetching");
     m_api->getBlockchainTx(hash);
 }
 
@@ -260,7 +235,7 @@ void BlockchainExplorerPage::onTxReady(QJsonObject data)
 void BlockchainExplorerPage::onRefreshEvents()
 {
     m_refreshEventsBtn->setEnabled(false);
-    m_refreshEventsBtn->setText("Loading…");
+    m_refreshEventsBtn->setText("Loading");
     m_api->getEventHistory(0);
 }
 
@@ -281,20 +256,19 @@ void BlockchainExplorerPage::onEventHistoryReady(QJsonObject data)
                              ? e["timestamp"].toString()
                              : e["blockTimestampISO"].toString().left(19).replace("T"," ");
 
-            // Build human summary per event type
             QString summary;
             if (event == "ReadingSubmitted")
-                summary = QString("Sensor %1  →  %2 °C  (round %3)")
-                              .arg(e["sensor"].toString().left(10) + "…")
+                summary = QString("Sensor %1    %2 C  (round %3)")
+                              .arg(e["sensor"].toString().left(10) + "")
                               .arg(e["valueScaled"].toString())
                               .arg(e["roundId"].toString());
             else if (event == "FaultySensorDetected")
                 summary = QString("FAULTY %1  score=%2  threshold=%3")
-                              .arg(e["sensor"].toString().left(10) + "…")
+                              .arg(e["sensor"].toString().left(10) + "")
                               .arg(e["disagreementScore"].toString())
                               .arg(e["scoreThreshold"].toString());
             else if (event == "ConsensusReached")
-                summary = QString("Round %1  →  %2 °C  (%3 trusted, %4 faulty)")
+                summary = QString("Round %1    %2 C  (%3 trusted, %4 faulty)")
                               .arg(e["roundId"].toString())
                               .arg(e["consensusValueScaled"].toString())
                               .arg(e["trustedParticipants"].toString())
@@ -306,12 +280,12 @@ void BlockchainExplorerPage::onEventHistoryReady(QJsonObject data)
                               .arg(e["totalParticipants"].toString());
             else if (event == "DeviceRegistered")
                 summary = QString("Device %1  type=%2  v%3")
-                              .arg(e["deviceAddress"].toString().left(10) + "…")
+                              .arg(e["deviceAddress"].toString().left(10) + "")
                               .arg(e["deviceType"].toString())
                               .arg(e["firmwareVersion"].toString());
             else if (event == "FirmwareUpdated")
-                summary = QString("Device %1  →  v%2")
-                              .arg(e["deviceAddress"].toString().left(10) + "…")
+                summary = QString("Device %1    v%2")
+                              .arg(e["deviceAddress"].toString().left(10) + "")
                               .arg(e["newVersion"].toString());
             else
                 summary = e["deviceAddress"].toString().left(20);
@@ -335,7 +309,6 @@ void BlockchainExplorerPage::onEventHistoryReady(QJsonObject data)
 
 void BlockchainExplorerPage::onError(const QString &endpoint, const QString &msg)
 {
-    // Restore button states on error
     m_fetchBlockBtn->setEnabled(true);
     m_fetchBlockBtn->setText("Fetch Block");
     m_fetchTxBtn->setEnabled(true);
@@ -348,12 +321,8 @@ void BlockchainExplorerPage::onError(const QString &endpoint, const QString &msg
     } else if (endpoint.contains("/blockchain/tx")) {
         m_txDetail->setPlainText("Error: " + msg);
     }
-    // Other errors are handled by the global error signal consumer
 }
 
-// ============================================================
-// Helpers
-// ============================================================
 
 void BlockchainExplorerPage::showJson(QTextEdit *te, const QJsonObject &obj)
 {
@@ -371,7 +340,6 @@ void BlockchainExplorerPage::appendEventRow(const QString &event,
     m_eventsTable->insertRow(row);
 
     auto *eventItem = new QTableWidgetItem(event);
-    // Colour-code by event type
     if (event.contains("Faulty") || event.contains("Rejected"))
         eventItem->setForeground(QColor("#c92a2a"));
     else if (event.contains("Reached") || event.contains("Registered"))
@@ -383,7 +351,7 @@ void BlockchainExplorerPage::appendEventRow(const QString &event,
 
     m_eventsTable->setItem(row, 0, eventItem);
     m_eventsTable->setItem(row, 1, new QTableWidgetItem(summary));
-    m_eventsTable->setItem(row, 2, new QTableWidgetItem(txHash.left(18) + "…"));
+    m_eventsTable->setItem(row, 2, new QTableWidgetItem(txHash.left(18) + ""));
     m_eventsTable->setItem(row, 3, new QTableWidgetItem(QString::number(blockNumber)));
     m_eventsTable->setItem(row, 4, new QTableWidgetItem(timestamp));
 }

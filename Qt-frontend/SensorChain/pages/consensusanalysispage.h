@@ -20,18 +20,18 @@
  * any completed consensus round.
  *
  * Layout:
- *   ┌─────────────────────────────────────────────────────────┐
- *   │  Round selector  [spinbox]  [Load]                      │
- *   ├─────────────────┬───────────────────────────────────────┤
- *   │  Sensor table   │  Step-by-step algorithm text          │
- *   │  addr|val|score │  • inputs                             │
- *   │  |faulty (R/G)  │  • pairwise comparisons               │
- *   │                 │  • threshold formula                   │
- *   │                 │  • safety check                        │
- *   │                 │  • trusted average                     │
- *   ├─────────────────┴───────────────────────────────────────┤
- *   │  Result bar: consensusValue | trusted | faulty | txHash │
- *   └─────────────────────────────────────────────────────────┘
+ *   
+ *     Round selector  [spinbox]  [Load]                      
+ *   
+ *     Sensor table     Step-by-step algorithm text          
+ *     addr|val|score    inputs                             
+ *     |faulty (R/G)     pairwise comparisons               
+ *                       threshold formula                   
+ *                       safety check                        
+ *                       trusted average                     
+ *   
+ *     Result bar: consensusValue | trusted | faulty | txHash 
+ *   
  */
 class ConsensusAnalysisPage : public QWidget
 {
@@ -55,17 +55,13 @@ private:
 
     ApiClient *m_api;
 
-    // Round selector
     QSpinBox    *m_roundSpin;
     QPushButton *m_loadBtn;
 
-    // Sensor table (left pane)
     QTableWidget *m_sensorTable;
 
-    // Algorithm narrative (right pane)
     QTextEdit *m_algorithmText;
 
-    // Result bar (bottom)
     QLabel *m_resultValue;
     QLabel *m_resultTrusted;
     QLabel *m_resultFaulty;

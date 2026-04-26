@@ -1,4 +1,3 @@
-// dashboardpage.cpp
 #include "dashboardpage.h"
 #include <QDateTime>
 #include <QHeaderView>
@@ -10,7 +9,6 @@ DashboardPage::DashboardPage(ApiClient *api, QWidget *parent)
 {
     setupUi();
 
-    // Connect API signals
     connect(m_api, &ApiClient::latestConsensusReady, this, &DashboardPage::onLatestConsensus);
     connect(m_api, &ApiClient::consensusStatsReady,  this, &DashboardPage::onConsensusStats);
     connect(m_api, &ApiClient::currentRoundReady,    this, &DashboardPage::onCurrentRound);
@@ -18,7 +16,6 @@ DashboardPage::DashboardPage(ApiClient *api, QWidget *parent)
     connect(m_api, &ApiClient::latestRoundReady,       this, &DashboardPage::onLatestRound);
     connect(m_api, &ApiClient::requestError,         this, &DashboardPage::onError);
 
-    // Auto-refresh every 5 seconds
     m_autoRefresh = new QTimer(this);
     connect(m_autoRefresh, &QTimer::timeout, this, &DashboardPage::refresh);
     m_autoRefresh->start(5000);
@@ -32,7 +29,7 @@ void DashboardPage::setupUi()
     mainLayout->setContentsMargins(24, 24, 24, 24);
     mainLayout->setSpacing(16);
 
-    // ── Page header ──────────────────────────────────────────────────
+    //  Page header 
     QLabel *title = new QLabel("Dashboard");
     title->setObjectName("pageTitle");
 
@@ -42,11 +39,10 @@ void DashboardPage::setupUi()
     mainLayout->addWidget(title);
     mainLayout->addWidget(subtitle);
 
-    // ── Top row: consensus value (big) + status ──────────────────────
+    //  Top row: consensus value (big) + status 
     QHBoxLayout *topRow = new QHBoxLayout();
     topRow->setSpacing(16);
 
-    // Consensus value card (large)
     QGroupBox *consensusCard = new QGroupBox("Latest Consensus Value");
     consensusCard->setMinimumHeight(140);
     QVBoxLayout *consensusLayout = new QVBoxLayout(consensusCard);
@@ -56,7 +52,7 @@ void DashboardPage::setupUi()
     m_consensusBig->setObjectName("consensusBig");
     m_consensusBig->setAlignment(Qt::AlignCenter);
 
-    m_consensusTempLabel = new QLabel("°C  (scaled ×100)");
+    m_consensusTempLabel = new QLabel("C  (scaled 100)");
     m_consensusTempLabel->setAlignment(Qt::AlignCenter);
     m_consensusTempLabel->setObjectName("pageSubtitle");
 
@@ -64,7 +60,6 @@ void DashboardPage::setupUi()
     consensusLayout->addWidget(m_consensusTempLabel);
     topRow->addWidget(consensusCard, 2);
 
-    // Status cards grid
     QWidget *statsWidget = new QWidget();
     QGridLayout *statsGrid = new QGridLayout(statsWidget);
     statsGrid->setSpacing(12);
@@ -77,11 +72,10 @@ void DashboardPage::setupUi()
     topRow->addWidget(statsWidget, 3);
     mainLayout->addLayout(topRow);
 
-    // ── Second row: round info + faulty + settings ───────────────────
+    //  Second row: round info + faulty + settings 
     QHBoxLayout *midRow = new QHBoxLayout();
     midRow->setSpacing(16);
 
-    // Round progress
     QGroupBox *roundGroup = new QGroupBox("Current Round Status");
     QVBoxLayout *roundLayout = new QVBoxLayout(roundGroup);
 
@@ -143,14 +137,14 @@ void DashboardPage::setupUi()
     faultyLayout->addRow("Last round ID:", m_lastRoundIdLabel);
     faultyLayout->addRow("Last round status:", m_lastRoundStatusLabel);
     faultyLayout->addRow("Faulty sensors (last round):", m_faultyCountLabel);
-    faultyLayout->addRow("Fault threshold (×100):",      m_thresholdLabel);
+    faultyLayout->addRow("Fault threshold (100):",      m_thresholdLabel);
     faultyLayout->addRow("Network status:",               m_statusLabel);
     faultyLayout->addRow("Last updated:",                 m_lastUpdatedLabel);
 
     midRow->addWidget(faultyGroup, 1);
     mainLayout->addLayout(midRow);
 
-    // ── Bottom row: current participants table ───────────────────────
+    //  Bottom row: current participants table 
     QGroupBox *participantsGroup = new QGroupBox("Current Round Participants");
     QVBoxLayout *participantsLayout = new QVBoxLayout(participantsGroup);
 
@@ -202,18 +196,16 @@ void DashboardPage::onLatestConsensus(QJsonObject data)
     QString faulty  = data["faultyCount"].toString("--");
     QString ts      = data["timestamp"].toString("0");
 
-    m_consensusBig->setText(scaled + " °C");
+    m_consensusBig->setText(scaled + " C");
     m_consensusTempLabel->setText("Consensus Temperature Result");
     m_trustedCountLabel->setText(trusted);
 
-    // Color faulty count
     int faultyInt = faulty.toInt();
     m_faultyCountLabel->setText(faulty);
     m_faultyCountLabel->setStyleSheet(faultyInt > 0
                                           ? "color: #c92a2a; font-size: 18px; font-weight: bold;"
                                           : "color: #2b8c4e; font-size: 18px; font-weight: bold;");
 
-    // Status
     if (faultyInt == 0) {
         m_statusLabel->setText("All sensors healthy");
         m_statusLabel->setObjectName("statusOk");
@@ -222,7 +214,6 @@ void DashboardPage::onLatestConsensus(QJsonObject data)
         m_statusLabel->setObjectName("statusWarning");
     }
 
-    // Last updated
     if (ts != "0") {
         QDateTime dt = QDateTime::fromSecsSinceEpoch(ts.toLongLong());
         m_lastUpdatedLabel->setText(dt.toString("hh:mm:ss  dd/MM/yyyy"));
@@ -236,9 +227,8 @@ void DashboardPage::onConsensusStats(QJsonObject data)
     m_totalRoundsLabel->setText(data["totalRounds"].toString("--"));
     m_minSensorsLabel->setText(data["minSensorsForConsensus"].toString("--"));
     m_thresholdLabel->setText(data["faultyThresholdUnits"].toString("--")
-                              + "  (" + data["faultyThresholdScaled"].toString("--") + "°)");
+                              + "  (" + data["faultyThresholdScaled"].toString("--") + ")");
 
-    // Round time remaining
     int remaining = data["roundTimeRemainingSeconds"].toInt(0);
     int window    = data["consensusWindow"].toString("3600").toInt();
     m_timeRemaining = remaining;
@@ -305,12 +295,11 @@ void DashboardPage::onLatestRound(QJsonObject data)
         m_lastRoundStatusLabel->setStyleSheet("color: #2b8c4e; font-weight: bold;");
     } else {
         m_lastRoundStatusLabel->setText(
-            QString("REJECTED — %1 faulty out of %2 sensors")
+            QString("REJECTED  %1 faulty out of %2 sensors")
                 .arg(faulty).arg(total));
         m_lastRoundStatusLabel->setStyleSheet("color: #c92a2a; font-weight: bold;");
     }
 
-    // Also update the faulty count card with the real latest round data
     int faultyInt = faulty.toInt();
     m_faultyCountLabel->setText(faulty);
     m_faultyCountLabel->setStyleSheet(faultyInt > 0
@@ -322,5 +311,5 @@ void DashboardPage::onError(QString endpoint, QString error)
 {
     Q_UNUSED(endpoint)
     Q_UNUSED(error)
-    // Dashboard silently ignores errors — shows -- for missing data
+    // Dashboard silently ignores errors  shows -- for missing data
 }

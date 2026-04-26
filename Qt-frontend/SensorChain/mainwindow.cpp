@@ -1,41 +1,35 @@
-// mainwindow.cpp
 #include "mainwindow.h"
 #include "pages/dashboardpage.h"
 #include "pages/devicespage.h"
 #include "pages/sensorspage.h"
 #include "pages/adminpage.h"
 #include "pages/historypage.h"
-#include "pages/blockchainexplorerpage.h"   // NEW
-#include "pages/consensusanalysispage.h"    // NEW
+#include "pages/blockchainexplorerpage.h"
+#include "pages/consensusanalysispage.h"
 #include <QListWidgetItem>
 #include <QJsonDocument>
 
-// ============================================================
-// TxFeedbackDialog
-// ============================================================
 
 TxFeedbackDialog::TxFeedbackDialog(const QString &operation,
                                    const QJsonObject &txData,
                                    QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle("Transaction Result — " + operation);
+    setWindowTitle("Transaction Result  " + operation);
     setMinimumSize(600, 380);
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(20, 20, 20, 20);
     layout->setSpacing(12);
 
-    // Status header
     bool ok = txData["status"].toString() == "success";
-    auto *statusLabel = new QLabel(ok ? "✓ Transaction Confirmed" : "✗ Transaction Failed");
+    auto *statusLabel = new QLabel(ok ? " Transaction Confirmed" : " Transaction Failed");
     statusLabel->setStyleSheet(
         QString("font-size: 16px; font-weight: bold; color: %1;")
             .arg(ok ? "#2b8c4e" : "#c92a2a")
         );
     layout->addWidget(statusLabel);
 
-    // Key fields grid
     auto addRow = [&](const QString &label, const QString &value, bool mono = false) {
         auto *row   = new QHBoxLayout();
         auto *lbl   = new QLabel(label + ":");
@@ -66,19 +60,16 @@ TxFeedbackDialog::TxFeedbackDialog(const QString &operation,
 
     layout->addStretch();
 
-    // Hint
     auto *hint = new QLabel("Copy the Tx Hash and paste it into the Blockchain Explorer tab to inspect decoded logs.");
     hint->setWordWrap(true);
     hint->setStyleSheet("color: #6c757d; font-size: 11px; font-style: italic;");
     layout->addWidget(hint);
 
-    // Close button
     auto *closeBtn = new QPushButton("Close");
     closeBtn->setObjectName("primaryBtn");
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     layout->addWidget(closeBtn, 0, Qt::AlignRight);
 
-    // Apply light professional theme
     setStyleSheet(R"(
         QDialog { background-color: #ffffff; }
         QPushButton#primaryBtn {
@@ -90,15 +81,12 @@ TxFeedbackDialog::TxFeedbackDialog(const QString &operation,
     )");
 }
 
-// ============================================================
-// MainWindow
-// ============================================================
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_api(new ApiClient(this))
 {
-    setWindowTitle("SensorChain — IoT Blockchain Dashboard");
+    setWindowTitle("SensorChain  IoT Blockchain Dashboard");
     setMinimumSize(1200, 750);
     resize(1440, 880);
 
@@ -111,9 +99,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow() {}
 
-// ============================================================
-// UI setup
-// ============================================================
 
 void MainWindow::setupUi()
 {
@@ -124,7 +109,7 @@ void MainWindow::setupUi()
     m_mainLayout->setContentsMargins(0, 0, 0, 0);
     m_mainLayout->setSpacing(0);
 
-    // ── Side navigation panel ────────────────────────────────
+    //  Side navigation panel 
     m_navPanel = new QWidget();
     m_navPanel->setFixedWidth(220);
     m_navPanel->setObjectName("navPanel");
@@ -166,8 +151,8 @@ void MainWindow::setupUi()
     addNavItem("", "Sensors");
     addNavItem("",  "Admin");
     addNavItem("", "History");
-    addNavItem("",  "Blockchain");    // NEW — index 5
-    addNavItem("", "Analysis");      // NEW — index 6
+    addNavItem("",  "Blockchain");    // NEW  index 5
+    addNavItem("", "Analysis");      // NEW  index 6
 
     m_navLayout->addWidget(m_navList, 1);
 
@@ -176,7 +161,7 @@ void MainWindow::setupUi()
     m_versionLabel->setAlignment(Qt::AlignCenter);
     m_navLayout->addWidget(m_versionLabel);
 
-    // ── Content pages ────────────────────────────────────────
+    //  Content pages 
     m_pages = new QStackedWidget();
     m_pages->setObjectName("contentArea");
 
@@ -211,13 +196,10 @@ void MainWindow::addNavItem(const QString &icon, const QString &label)
     m_navList->addItem(item);
 }
 
-// ============================================================
-// Global write-result connections
-// ============================================================
 
 void MainWindow::setupGlobalConnections()
 {
-    // Every write operation → show TxFeedbackDialog
+    // Every write operation  show TxFeedbackDialog
     connect(m_api, &ApiClient::deviceRegistered,
             this,  &MainWindow::onDeviceRegistered);
     connect(m_api, &ApiClient::firmwareUpdated,
@@ -226,8 +208,6 @@ void MainWindow::setupGlobalConnections()
             this,  &MainWindow::onDeviceDeactivated);
     connect(m_api, &ApiClient::deviceReactivated,
             this,  &MainWindow::onDeviceReactivated);
-    connect(m_api, &ApiClient::readingSubmitted,
-            this,  &MainWindow::onReadingSubmitted);
     connect(m_api, &ApiClient::newRoundStarted,
             this,  &MainWindow::onNewRoundStarted);
     connect(m_api, &ApiClient::consensusForced,
@@ -242,9 +222,6 @@ void MainWindow::setupGlobalConnections()
             this,  &MainWindow::onDeviceRegistrySet);
 }
 
-// ============================================================
-// Navigation slot
-// ============================================================
 
 void MainWindow::onNavItemChanged(int index)
 {
@@ -260,9 +237,7 @@ void MainWindow::onNavItemChanged(int index)
     }
 }
 
-// ============================================================
-// Write result slots — each calls showTxFeedback
-// ============================================================
+// Write result slots  each calls showTxFeedback
 
 void MainWindow::showTxFeedback(const QString &operation, const QJsonObject &txData)
 {
@@ -304,9 +279,6 @@ void MainWindow::onDeviceRegistrySet(QJsonObject txData) {
     showTxFeedback("Set Device Registry", txData);
 }
 
-// ============================================================
-// Styles  (professional white theme)
-// ============================================================
 
 void MainWindow::setupStyles()
 {
@@ -453,7 +425,7 @@ void MainWindow::setupStyles()
         QTreeWidget::item:selected { background-color: #e7f5ff; color: #4c6ef5; }
         QScrollArea { border: none; background-color: transparent; }
 
-        /* ── Dialog override ── */
+        /*  Dialog override  */
         QDialog { background-color: #ffffff; color: #212529; }
     )");
 }

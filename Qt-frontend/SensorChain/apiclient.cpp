@@ -8,9 +8,6 @@ ApiClient::ApiClient(QObject *parent)
     , m_manager(new QNetworkAccessManager(this))
 {}
 
-// ============================================================
-// HTTP HELPERS
-// ============================================================
 
 void ApiClient::get(const QString &endpoint, std::function<void(QJsonObject)> handler)
 {
@@ -31,38 +28,35 @@ void ApiClient::post(const QString &endpoint, const QJsonObject &body,
 }
 
 void ApiClient::handleReply(QNetworkReply *reply, const QString &endpoint,
-                             std::function<void(QJsonObject)> handler)
+                            std::function<void(QJsonObject)> handler)
 {
     connect(reply, &QNetworkReply::finished, this, [this, reply, endpoint, handler]() {
-        reply->deleteLater();
+        QByteArray raw = reply->readAll();
+
+        qDebug() << "=== API RESPONSE from" << endpoint << "===";
+        qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "Raw response:" << raw;
+
+        QJsonDocument doc = QJsonDocument::fromJson(raw);
+
+        if (!doc.isNull() && doc.isObject()) {
+            QJsonObject obj = doc.object();
+            qDebug() << "Parsed JSON:" << obj;
+            handler(obj);
+            reply->deleteLater();
+            return;
+        }
 
         if (reply->error() != QNetworkReply::NoError) {
             emit requestError(endpoint, reply->errorString());
-            return;
-        }
-
-        QByteArray raw = reply->readAll();
-        QJsonDocument doc = QJsonDocument::fromJson(raw);
-
-        if (doc.isNull() || !doc.isObject()) {
+        } else {
             emit requestError(endpoint, "Invalid JSON response");
-            return;
         }
 
-        QJsonObject obj = doc.object();
-
-        if (!obj["success"].toBool()) {
-            emit requestError(endpoint, obj["error"].toString("Unknown error"));
-            return;
-        }
-
-        handler(obj);
+        reply->deleteLater();
     });
 }
-
-// ============================================================
-// DEVICE REGISTRY — READ
-// ============================================================
+// DEVICE REGISTRY  READ
 
 void ApiClient::getRegistryStats()
 {
@@ -114,9 +108,7 @@ void ApiClient::verifyFirmware(const QString &address, const QString &hash)
         });
 }
 
-// ============================================================
-// DEVICE REGISTRY — WRITE
-// ============================================================
+// DEVICE REGISTRY  WRITE
 
 void ApiClient::registerDevice(const QString &deviceAddress, const QString &firmwareHash,
                                 int firmwareVersion, const QString &deviceType)
@@ -161,9 +153,7 @@ void ApiClient::reactivateDevice(const QString &deviceAddress)
          });
 }
 
-// ============================================================
-// SENSOR CONSENSUS — READ
-// ============================================================
+// SENSOR CONSENSUS  READ
 
 void ApiClient::getLatestRound()
 {
@@ -223,12 +213,10 @@ void ApiClient::getEventHistory(int fromBlock)
         });
 }
 
-// ============================================================
-// SENSOR CONSENSUS — WRITE (sensor)
-// ============================================================
+// SENSOR CONSENSUS  WRITE (sensor)
 
 void ApiClient::submitReading(const QString &sensorAddress, int value,
-                               const QString &firmwareHash)
+                              const QString &firmwareHash)
 {
     QJsonObject body;
     body["sensorAddress"] = sensorAddress;
@@ -236,13 +224,12 @@ void ApiClient::submitReading(const QString &sensorAddress, int value,
     body["firmwareHash"]  = firmwareHash;
 
     post("/consensus/submit", body, [this](QJsonObject obj) {
-        emit readingSubmitted(obj["data"].toObject());
+        // Pass the ENTIRE response object, not just obj["data"]
+        // Because error responses don't have a "data" field
+        emit readingSubmitted(obj);
     });
 }
-
-// ============================================================
-// SENSOR CONSENSUS — WRITE (admin)
-// ============================================================
+// SENSOR CONSENSUS  WRITE (admin)
 
 void ApiClient::forceNewRound()
 {
@@ -294,9 +281,6 @@ void ApiClient::setDeviceRegistry(const QString &registryAddress)
     });
 }
 
-// ============================================================
-// CONSENSUS EXPLANATION  (NEW)
-// ============================================================
 
 void ApiClient::getConsensusExplain(int roundId)
 {
@@ -306,9 +290,6 @@ void ApiClient::getConsensusExplain(int roundId)
         });
 }
 
-// ============================================================
-// BLOCKCHAIN INSPECTOR  (NEW)
-// ============================================================
 
 void ApiClient::getBlockchainNetwork()
 {

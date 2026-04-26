@@ -26,13 +26,11 @@ public slots:
     void refresh();
 
 private slots:
-    // Registry write responses
     void onDeviceRegistered(QJsonObject receipt);
     void onFirmwareUpdated(QJsonObject receipt);
     void onDeviceDeactivated(QJsonObject receipt);
     void onDeviceReactivated(QJsonObject receipt);
 
-    // Consensus write responses
     void onNewRoundStarted(QJsonObject receipt);
     void onConsensusForced(QJsonObject receipt);
     void onFaultyThresholdSet(QJsonObject receipt);
@@ -40,13 +38,11 @@ private slots:
     void onConsensusWindowSet(QJsonObject receipt);
     void onDeviceRegistrySet(QJsonObject receipt);
 
-    // Stats
     void onRegistryStats(QJsonObject data);
     void onConsensusStats(QJsonObject data);
 
     void onError(QString endpoint, QString error);
 
-    // Button handlers
     void onRegisterDeviceClicked();
     void onUpdateFirmwareClicked();
     void onDeactivateClicked();
@@ -68,31 +64,26 @@ private:
     ApiClient  *m_api;
     QTabWidget *m_tabs;
 
-    // ── Registry tab ─────────────────────────────────────────
-    // Register device
+    //  Registry tab 
     QLineEdit *m_regAddressInput;
     QLineEdit *m_regFirmwareInput;
     QSpinBox  *m_regVersionInput;
     QLineEdit *m_regTypeInput;
     QPushButton *m_registerBtn;
 
-    // Update firmware
     QLineEdit *m_updAddressInput;
     QLineEdit *m_updFirmwareInput;
     QSpinBox  *m_updVersionInput;
     QPushButton *m_updateFirmwareBtn;
 
-    // Deactivate / Reactivate
     QLineEdit *m_deactAddressInput;
     QPushButton *m_deactivateBtn;
     QPushButton *m_reactivateBtn;
 
-    // ── Consensus tab ─────────────────────────────────────────
-    // Round controls
+    //  Consensus tab 
     QPushButton *m_forceNewRoundBtn;
     QPushButton *m_forceConsensusBtn;
 
-    // Settings
     QSpinBox  *m_thresholdInput;
     QPushButton *m_setThresholdBtn;
 
@@ -105,7 +96,7 @@ private:
     QLineEdit *m_registryAddressInput;
     QPushButton *m_setRegistryBtn;
 
-    // ── Info tab ─────────────────────────────────────────────
+    //  Info tab 
     QLabel *m_registryOwnerLabel;
     QLabel *m_registryAddressLabel;
     QLabel *m_totalDevicesLabel;
@@ -118,7 +109,7 @@ private:
     QLabel *m_thresholdLabel;
     QLabel *m_windowLabel;
 
-    // ── Activity log (shared across tabs) ────────────────────
+    //  Activity log (shared across tabs) 
     QTextEdit *m_activityLog;
 };
 

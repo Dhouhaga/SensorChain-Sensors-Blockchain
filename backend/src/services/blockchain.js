@@ -1,17 +1,16 @@
-// ============================================================
-// blockchain.js — All ethers.js interaction in one place.
+// blockchain.js  All ethers.js interaction in one place.
 // Routes never touch ethers directly; they call this service.
 //
 // ENHANCED: Enriched transaction responses, block inspection,
-//           full event traceability, and consensus explanation.
-// ============================================================
+//           full event traceability, consensus explanation,
+//           and proper blockchain revert error handling.
 
 const { ethers } = require("ethers");
 const { DEVICE_REGISTRY_ABI, SENSOR_CONSENSUS_ABI } = require("../config/abis");
 
 const GAS_LIMIT = 1000000;
 
-// ── Provider & signers ──────────────────────────────────────────────────────
+//  Provider & signers 
 
 const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
 
@@ -32,7 +31,7 @@ const consensusRead = new ethers.Contract(
 const registryWrite  = registryRead.connect(ownerWallet);
 const consensusWrite = consensusRead.connect(ownerWallet);
 
-// ── Helper: get a sensor wallet from env ────────────────────────────────────
+//  Helper: get a sensor wallet from env 
 
 function getSensorWallet(sensorAddress) {
   let key = process.env[`SENSOR_PRIVATE_KEY_${sensorAddress}`];
@@ -50,9 +49,6 @@ function getSensorWallet(sensorAddress) {
   return new ethers.Wallet(key, provider);
 }
 
-// ============================================================
-// FORMATTERS
-// ============================================================
 
 function formatDevice(d) {
   return {
@@ -67,7 +63,6 @@ function formatDevice(d) {
 }
 
 async function formatRound(r, roundId) {
-  // Helper function to convert array-like objects to real arrays
   function toArray(arr) {
     if (!arr) return [];
     if (Array.isArray(arr)) return arr;
@@ -83,7 +78,6 @@ async function formatRound(r, roundId) {
     return [];
   }
 
-  // Extract arrays from the struct
   let participants = toArray(r.participants);
   let values = toArray(r.values);
   const disagreementScores = toArray(r.disagreementScores);
@@ -105,15 +99,6 @@ async function formatRound(r, roundId) {
     values = fetchedValues;
   }
 
-  console.log('formatRound debug:', {
-    roundId,
-    participantsCount: participants.length,
-    valuesCount: values.length,
-    scoresCount: disagreementScores.length,
-    flagsCount: faultyFlags.length,
-  });
-
-  // Convert BigNumber values to strings
   const valuesStr = values.map(v => v ? (v.toString ? v.toString() : String(v)) : "0");
   const scoresStr = disagreementScores.map(s => s ? (s.toString ? s.toString() : String(s)) : "0");
 
@@ -150,38 +135,179 @@ async function formatRound(r, roundId) {
  * @param {object} [block]  - ethers Block (optional, fetched if omitted)
  */
 async function formatEnrichedReceipt(receipt, tx, block) {
-  if (!tx)    tx    = await provider.getTransaction(receipt.transactionHash);
-  if (!block) block = await provider.getBlock(receipt.blockNumber);
+  try {
+    if (!tx && receipt) {
+      try {
+        tx = await provider.getTransaction(receipt.transactionHash);
+      } catch (err) {
+        console.warn("Could not fetch transaction:", err.message);
+      }
+    }
+    if (!block && receipt && receipt.blockNumber) {
+      try {
+        block = await provider.getBlock(receipt.blockNumber);
+      } catch (err) {
+        console.warn("Could not fetch block:", err.message);
+      }
+    }
 
-  return {
-    // Core identifiers
-    transactionHash: receipt.transactionHash,
-    blockNumber:     receipt.blockNumber,
-    blockHash:       receipt.blockHash,
+    return {
+      transactionHash: receipt?.transactionHash || "unknown",
+      blockNumber:     receipt?.blockNumber || 0,
+      blockHash:       receipt?.blockHash || "unknown",
 
-    // Parties
-    from: tx.from,
-    to:   tx.to,
+      from: tx?.from || "unknown",
+      to:   tx?.to || "unknown",
 
-    // Gas
-    gasUsed:    receipt.gasUsed.toString(),
-    gasPrice:   tx.gasPrice  ? tx.gasPrice.toString()  : "0",
-    gasCostWei: tx.gasPrice  ? tx.gasPrice.mul(receipt.gasUsed).toString() : "0",
+      gasUsed:    receipt?.gasUsed?.toString() || "0",
+      gasPrice:   tx?.gasPrice?.toString() || "0",
+      gasCostWei: tx?.gasPrice && receipt?.gasUsed 
+        ? tx.gasPrice.mul(receipt.gasUsed).toString() 
+        : "0",
 
-    // Status
-    status:        receipt.status === 1 ? "success" : "failed",
-    confirmations: receipt.confirmations,
+      status:        receipt?.status === 1 ? "success" : receipt?.status === 0 ? "failed" : "unknown",
+      confirmations: receipt?.confirmations || 0,
 
-    // Block context
-    blockTimestamp:        block.timestamp.toString(),
-    blockTimestampISO:     new Date(block.timestamp * 1000).toISOString(),
-    blockTransactionCount: block.transactions.length,
+      blockTimestamp:        block?.timestamp?.toString() || "0",
+      blockTimestampISO:     block?.timestamp ? new Date(block.timestamp * 1000).toISOString() : null,
+      blockTransactionCount: block?.transactions?.length || 0,
 
-    // Logs
-    logsCount: receipt.logs.length
-  };
+      logsCount: receipt?.logs?.length || 0
+    };
+  } catch (err) {
+    console.error("Error formatting receipt:", err);
+    return {
+      transactionHash: receipt?.transactionHash || "unknown",
+      blockNumber: receipt?.blockNumber || 0,
+      blockHash: receipt?.blockHash || "unknown",
+      from: "unknown",
+      to: "unknown",
+      gasUsed: "0",
+      gasPrice: "0",
+      gasCostWei: "0",
+      status: "unknown",
+      confirmations: 0,
+      blockTimestamp: "0",
+      blockTimestampISO: null,
+      blockTransactionCount: 0,
+      logsCount: 0
+    };
+  }
 }
 
+/**
+ * Format a blockchain error into a user-friendly response
+ */
+/**
+ * Format a blockchain error into a user-friendly response
+ */
+function formatBlockchainError(error, txHash = null) {
+  let errorReason = null;
+  let errorType = "unknown";
+  
+  if (error.reason) {
+    errorReason = error.reason;
+  } 
+  // Check for nested error.data (from ethers)
+  else if (error.error && error.error.data && error.error.data.reason) {
+    errorReason = error.error.data.reason;
+  }
+  else if (error.error && error.error.data && error.error.data.message) {
+    const msg = error.error.data.message;
+    const revertMatch = msg.match(/revert (.*?)(?:"|$)/);
+    errorReason = revertMatch ? revertMatch[1] : msg;
+  }
+  else if (error.data && error.data.reason) {
+    errorReason = error.data.reason;
+  }
+  else if (error.data && error.data.message) {
+    const msg = error.data.message;
+    const revertMatch = msg.match(/revert (.*?)(?:"|$)/);
+    errorReason = revertMatch ? revertMatch[1] : msg;
+  }
+  else if (error.error && error.error.message) {
+    const msg = error.error.message;
+    const revertMatch = msg.match(/revert (.*?)(?:"|$)/);
+    errorReason = revertMatch ? revertMatch[1] : msg;
+  }
+  else if (error.message) {
+    const revertMatch = error.message.match(/revert (.*?)(?:"|$)/);
+    errorReason = revertMatch ? revertMatch[1] : null;
+  }
+  
+  // If still no reason, try to get from the original error's nested structure
+  if (!errorReason && error.originalError) {
+    if (error.originalError.data && error.originalError.data.reason) {
+      errorReason = error.originalError.data.reason;
+    } else if (error.originalError.reason) {
+      errorReason = error.originalError.reason;
+    }
+  }
+  
+  console.log("Extracted error reason:", errorReason);
+  
+  const errorMessages = {
+    "Device not registered or inactive": {
+      message: " Sensor not registered or deactivated",
+      action: "Please select an active sensor or contact administrator to reactivate this sensor.",
+      type: "authentication"
+    },
+    "Security Alert: Firmware hash mismatch": {
+      message: "!! Security Alert: Firmware hash mismatch",
+      action: "The device is not running authorized firmware. Please update the firmware hash in DeviceRegistry.",
+      type: "security"
+    },
+    "Security Alert: Invalid cryptographic signature": {
+      message: "!! Invalid signature - Authentication failed",
+      action: "The reading was not properly signed by the sensor. Check sensor private key configuration.",
+      type: "security"
+    },
+    "Device already submitted for this round": {
+      message: " Duplicate submission",
+      action: "This sensor has already submitted a reading for the current round. Wait for next round.",
+      type: "duplicate"
+    },
+    "Device not found": {
+      message: " Device not found in registry",
+      action: "This sensor address is not registered. Please register the device first.",
+      type: "authentication"
+    },
+    "Only contract owner can call this function": {
+      message: "!! Admin only operation",
+      action: "This operation requires contract owner privileges.",
+      type: "permission"
+    }
+  };
+  
+  const knownError = errorMessages[errorReason];
+  if (knownError) {
+    return {
+      success: false,
+      error: knownError.message,
+      action: knownError.action,
+      type: knownError.type,
+      details: {
+        reason: errorReason,
+        transactionHash: txHash,
+        blockchainError: true
+      }
+    };
+  }
+  
+  return {
+    success: false,
+    error: errorReason ? ` Blockchain error: ${errorReason}` : " Blockchain transaction failed",
+    action: errorReason 
+      ? `Reason: ${errorReason}. Please check sensor status and try again.` 
+      : "Please check sensor status and try again.",
+    type: "unknown",
+    details: {
+      reason: errorReason || error.message || "Unknown error",
+      transactionHash: txHash,
+      blockchainError: true
+    }
+  };
+}
 /**
  * Decode logs from a receipt using both contract interfaces.
  */
@@ -216,9 +342,6 @@ function decodeLogs(receipt) {
   });
 }
 
-// ============================================================
-// BLOCKCHAIN INSPECTION
-// ============================================================
 
 /**
  * Returns latest block summary.
@@ -262,7 +385,7 @@ async function getBlockByNumber(number) {
       gasLimit: tx.gasLimit.toString(),
       gasPrice: tx.gasPrice?.toString() ?? "0",
       nonce:    tx.nonce,
-      data:     tx.data.length > 66 ? tx.data.slice(0, 66) + "…" : tx.data
+      data:     tx.data.length > 66 ? tx.data.slice(0, 66) + "" : tx.data
     }))
   };
 }
@@ -313,9 +436,7 @@ async function getNetworkInfo() {
   };
 }
 
-// ============================================================
-// DEVICE REGISTRY — WRITE
-// ============================================================
+// DEVICE REGISTRY  WRITE
 
 async function registerDevice(deviceAddress, firmwareHash, firmwareVersion, deviceType) {
   const tx      = await registryWrite.registerDevice(
@@ -347,9 +468,7 @@ async function reactivateDevice(deviceAddress) {
   return formatEnrichedReceipt(receipt);
 }
 
-// ============================================================
-// DEVICE REGISTRY — READ
-// ============================================================
+// DEVICE REGISTRY  READ
 
 async function getAllDevices() {
   const addresses = await registryRead.getAllDevices();
@@ -397,41 +516,123 @@ async function getRegistryStats() {
   };
 }
 
-// ============================================================
-// SENSOR CONSENSUS — WRITE (sensor)
-// ============================================================
+// SENSOR CONSENSUS  WRITE (sensor)
+// SENSOR CONSENSUS  WRITE (sensor)
 
 async function submitReading(sensorAddress, value, firmwareHash) {
-  const wallet             = getSensorWallet(sensorAddress);
-  const consensusWithSensor = consensusRead.connect(wallet);
+  let tx = null;
+  
+  try {
+    const wallet = getSensorWallet(sensorAddress);
+    const consensusWithSensor = consensusRead.connect(wallet);
 
-  const timestamp  = Math.floor(Date.now() / 1000);
-  const messageHash = ethers.utils.solidityKeccak256(
-    ["int256", "uint256"],
-    [value, timestamp]
-  );
-  const signature = await wallet.signMessage(ethers.utils.arrayify(messageHash));
+    const timestamp = Math.floor(Date.now() / 1000);
+    const messageHash = ethers.utils.solidityKeccak256(
+      ["int256", "uint256"],
+      [value, timestamp]
+    );
+    const signature = await wallet.signMessage(ethers.utils.arrayify(messageHash));
 
-  const tx      = await consensusWithSensor.submitReading(
-    value, timestamp, firmwareHash, signature,
-    { gasLimit: GAS_LIMIT }
-  );
-  const receipt = await tx.wait();
-  const enriched = await formatEnrichedReceipt(receipt);
-
-  return {
-    ...enriched,
-    sensorAddress,
-    value:       value.toString(),
-    valueScaled: (Number(value) / 100).toFixed(2),
-    timestamp,
-    firmwareHash
-  };
+    tx = await consensusWithSensor.submitReading(
+      value, timestamp, firmwareHash, signature,
+      { gasLimit: GAS_LIMIT }
+    );
+    
+    const receipt = await tx.wait();
+    
+    const enriched = await formatEnrichedReceipt(receipt);
+    
+    return {
+      ...enriched,
+      sensorAddress,
+      value: value.toString(),
+      valueScaled: (Number(value) / 100).toFixed(2),
+      timestamp,
+      firmwareHash
+    };
+    
+  } catch (error) {
+    console.error("Blockchain submit error:", error);
+    
+    const txHash = tx ? tx.hash : (error.transactionHash || (error.transaction ? error.transaction.hash : null));
+    
+    let errorReason = null;
+    
+    // The actual revert reason is deep in error.error.data.reason
+    if (error.error && error.error.data && error.error.data.reason) {
+      errorReason = error.error.data.reason;
+    } 
+    else if (error.data && error.data.reason) {
+      errorReason = error.data.reason;
+    }
+    else if (error.reason && error.reason !== "processing response error") {
+      errorReason = error.reason;
+    }
+    else if (error.error && error.error.message) {
+      const msg = error.error.message;
+      const revertMatch = msg.match(/revert (.*?)(?:"|$)/);
+      if (revertMatch) errorReason = revertMatch[1];
+    }
+    else if (error.message) {
+      const revertMatch = error.message.match(/revert (.*?)(?:"|$)/);
+      if (revertMatch) errorReason = revertMatch[1];
+    }
+    
+    console.log("Extracted error reason:", errorReason);
+    
+    let userMessage = " Blockchain transaction failed";
+    let userAction = "Please check sensor status and try again.";
+    let errorType = "unknown";
+    
+    switch(errorReason) {
+      case "Device not registered or inactive":
+        userMessage = " Sensor not registered or deactivated";
+        userAction = "Please select an active sensor or contact administrator to reactivate this sensor.";
+        errorType = "authentication";
+        break;
+      case "Security Alert: Firmware hash mismatch":
+        userMessage = "!! Security Alert: Firmware hash mismatch";
+        userAction = "The device is not running authorized firmware. Please update the firmware hash in DeviceRegistry.";
+        errorType = "security";
+        break;
+      case "Security Alert: Invalid cryptographic signature":
+        userMessage = "!! Invalid signature - Authentication failed";
+        userAction = "The reading was not properly signed by the sensor. Check sensor private key configuration.";
+        errorType = "security";
+        break;
+      case "Device already submitted for this round":
+        userMessage = " Duplicate submission";
+        userAction = "This sensor has already submitted a reading for the current round. Wait for next round.";
+        errorType = "duplicate";
+        break;
+      case "Device not found":
+        userMessage = " Device not found in registry";
+        userAction = "This sensor address is not registered. Please register the device first.";
+        errorType = "authentication";
+        break;
+    }
+    
+    const formattedError = {
+      success: false,
+      error: userMessage,
+      action: userAction,
+      type: errorType,
+      details: {
+        reason: errorReason,
+        transactionHash: txHash,
+        blockchainError: true
+      }
+    };
+    
+    const throwError = new Error(userMessage);
+    throwError.formattedResponse = formattedError;
+    throwError.transactionHash = txHash;
+    throwError.originalError = error;
+    throw throwError;
+  }
 }
 
-// ============================================================
-// SENSOR CONSENSUS — WRITE (admin)
-// ============================================================
+// SENSOR CONSENSUS  WRITE (admin)
 
 async function forceNewRound() {
   const tx      = await consensusWrite.forceNewRound({ gasLimit: GAS_LIMIT });
@@ -469,9 +670,7 @@ async function setDeviceRegistry(newRegistryAddress) {
   return formatEnrichedReceipt(receipt);
 }
 
-// ============================================================
-// SENSOR CONSENSUS — READ
-// ============================================================
+// SENSOR CONSENSUS  READ
 
 async function getLatestConsensus() {
   const result = await consensusRead.getLatestConsensus();
@@ -608,9 +807,6 @@ async function getAllRounds() {
   return rounds;
 }
 
-// ============================================================
-// CONSENSUS EXPLANATION
-// ============================================================
 
 /**
  * Reconstruct the full pairwise-disagreement algorithm in JS
@@ -621,74 +817,172 @@ async function getAllRounds() {
  * Solidity _calculateConsensus() function actually did.
  */
 async function explainConsensusRound(roundId) {
-  // 1. Fetch the stored round (already includes scores + flags)
-  const raw = await consensusRead.getConsensusRound(roundId);
-  const r = await formatRound(raw, roundId);
-
+  let participants = [];
+  let values = [];
+  let faultyFlags = [];
+  let disagreementScores = [];
+  let consensusReached = false;
+  let consensusValue = "0";
+  let trustedParticipants = "0";
+  let faultyCount = "0";
+  let totalParticipants = "0";
+  let timestamp = "0";
+  
+  // FIRST: Try to get participants from roundParticipants mapping via events
+  try {
+    const events = await consensusRead.queryFilter(
+      consensusRead.filters.ReadingSubmitted(roundId),
+      0,
+      'latest'
+    );
+    
+    const uniqueSensors = new Set();
+    for (const event of events) {
+      uniqueSensors.add(event.args.sensor);
+    }
+    participants = Array.from(uniqueSensors);
+    
+    console.log(`Round ${roundId}: Found ${participants.length} participants from events`);
+    
+    for (const addr of participants) {
+      try {
+        const reading = await consensusRead.getReading(roundId, addr);
+        values.push(reading.value.toString());
+        faultyFlags.push(reading.isFaulty);
+      } catch (err) {
+        console.error(`Failed to get reading for ${addr}:`, err.message);
+        values.push("0");
+        faultyFlags.push(false);
+      }
+    }
+    
+    try {
+      const roundData = await consensusRead.getConsensusRound(roundId);
+      if (roundData && roundData.timestamp && roundData.timestamp.toString() !== "0") {
+        consensusReached = roundData.consensusReached;
+        consensusValue = roundData.consensusValue?.toString() || "0";
+        trustedParticipants = roundData.trustedParticipants?.toString() || "0";
+        faultyCount = roundData.faultyCount?.toString() || "0";
+        totalParticipants = roundData.totalParticipants?.toString() || "0";
+        timestamp = roundData.timestamp?.toString() || "0";
+        
+        // If round data has values, use them instead
+        if (roundData.values && roundData.values.length > 0) {
+          values = Array.isArray(roundData.values) ? roundData.values.map(v => v.toString()) : values;
+        }
+        if (roundData.disagreementScores && roundData.disagreementScores.length > 0) {
+          disagreementScores = Array.isArray(roundData.disagreementScores) ? roundData.disagreementScores.map(s => s.toString()) : [];
+        }
+        if (roundData.faultyFlags && roundData.faultyFlags.length > 0) {
+          faultyFlags = Array.isArray(roundData.faultyFlags) ? roundData.faultyFlags : faultyFlags;
+        }
+      }
+    } catch (err) {
+      console.log(`Round ${roundId} not finalized in consensusRounds`);
+    }
+    
+    if (disagreementScores.length === 0 && values.length >= 2) {
+      const count = values.length;
+      disagreementScores = new Array(count).fill(0);
+      for (let i = 0; i < count - 1; i++) {
+        for (let j = i + 1; j < count; j++) {
+          const diff = Math.abs(Number(values[i]) - Number(values[j]));
+          disagreementScores[i] += diff;
+          disagreementScores[j] += diff;
+        }
+      }
+      disagreementScores = disagreementScores.map(s => s.toString());
+    }
+    
+  } catch (err) {
+    console.error(`Failed to fetch events for round ${roundId}:`, err.message);
+  }
+  
+  // If still no participants, try to get from consensusRounds directly
+  if (participants.length === 0) {
+    try {
+      const roundData = await consensusRead.getConsensusRound(roundId);
+      if (roundData && roundData.participants) {
+        participants = Array.isArray(roundData.participants) ? roundData.participants : [];
+        values = Array.isArray(roundData.values) ? roundData.values.map(v => v.toString()) : [];
+        disagreementScores = Array.isArray(roundData.disagreementScores) ? roundData.disagreementScores.map(s => s.toString()) : [];
+        faultyFlags = Array.isArray(roundData.faultyFlags) ? roundData.faultyFlags : [];
+        consensusReached = roundData.consensusReached || false;
+        consensusValue = roundData.consensusValue?.toString() || "0";
+        trustedParticipants = roundData.trustedParticipants?.toString() || "0";
+        faultyCount = roundData.faultyCount?.toString() || "0";
+        totalParticipants = roundData.totalParticipants?.toString() || "0";
+        timestamp = roundData.timestamp?.toString() || "0";
+      }
+    } catch (err) {
+      console.log(`Round ${roundId} not found in consensusRounds`);
+    }
+  }
+  
+  const count = participants.length;
+  const faultyThreshRaw = Number(await consensusRead.faultyThresholdUnits());
+  const scoreThreshold = faultyThreshRaw * (Math.max(count, 1) - 1);
+  
+  const valuesStr = values.map(v => v.toString ? v.toString() : String(v));
+  const valuesScaled = valuesStr.map(v => (Number(v) / 100).toFixed(2));
+  const scoresStr = disagreementScores.map(s => s.toString ? s.toString() : String(s));
+  
   console.log('Explained round data:', {
-    roundId: r.roundId,
-    participantCount: r.participants.length,
-    valuesCount: r.values.length,
-    firstValue: r.values[0],
-    firstValueScaled: r.valuesScaled[0]
+    roundId,
+    participantCount: count,
+    valuesCount: valuesStr.length,
+    faultyCount: faultyFlags.filter(f => f === true).length
   });
 
-  const count = r.participants.length;
-  const faultyThreshRaw = Number(await consensusRead.faultyThresholdUnits());
-  const scoreThreshold = faultyThreshRaw * (count - 1);
-
-  // 2. Re-derive pairwise pairs for the explanation
   const pairwiseComparisons = [];
   for (let i = 0; i < count - 1; i++) {
     for (let j = i + 1; j < count; j++) {
-      const vi = Number(r.values[i]);
-      const vj = Number(r.values[j]);
+      const vi = Number(valuesStr[i] || 0);
+      const vj = Number(valuesStr[j] || 0);
       const diff = Math.abs(vi - vj);
       pairwiseComparisons.push({
-        sensorA: r.participants[i],
-        sensorAValue: r.valuesScaled[i],
-        sensorB: r.participants[j],
-        sensorBValue: r.valuesScaled[j],
+        sensorA: participants[i],
+        sensorAValue: (vi / 100).toFixed(2),
+        sensorB: participants[j],
+        sensorBValue: (vj / 100).toFixed(2),
         differenceRaw: diff.toString(),
         differenceScaled: (diff / 100).toFixed(2)
       });
     }
   }
 
-  // 3. Per-sensor analysis
-  const sensorAnalysis = r.participants.map((addr, i) => {
-    const scoreRaw = Number(r.disagreementScores[i]);
-    const isFaulty = r.faultyFlags[i];
+  const sensorAnalysis = participants.map((addr, i) => {
+    const scoreRaw = Number(scoresStr[i] || 0);
+    const isFaulty = faultyFlags[i] || false;
     const excess = isFaulty ? scoreRaw - scoreThreshold : 0;
     return {
       address: addr,
-      submittedValue: r.valuesScaled[i],
-      submittedValueRaw: r.values[i],
-      disagreementScore: scoreRaw.toString(),
-      disagreementScoreScaled: (scoreRaw / 100).toFixed(2),
+      submittedValue: valuesScaled[i],
+      submittedValueRaw: valuesStr[i] || "0",
+      disagreementScore: scoresStr[i] || "0",
+      disagreementScoreScaled: ((scoreRaw) / 100).toFixed(2),
       scoreThreshold: scoreThreshold.toString(),
       scoreThresholdScaled: (scoreThreshold / 100).toFixed(2),
       isFaulty,
       verdict: isFaulty
-        ? `FAULTY — score ${(scoreRaw/100).toFixed(2)} exceeds threshold ${(scoreThreshold/100).toFixed(2)} by ${(excess/100).toFixed(2)}`
-        : `TRUSTED — score ${(scoreRaw/100).toFixed(2)} within threshold ${(scoreThreshold/100).toFixed(2)}`
+        ? `FAULTY  score ${(scoreRaw/100).toFixed(2)} exceeds threshold ${(scoreThreshold/100).toFixed(2)} by ${(excess/100).toFixed(2)}`
+        : `TRUSTED  score ${(scoreRaw/100).toFixed(2)} within threshold ${(scoreThreshold/100).toFixed(2)}`
     };
   });
 
-  // 4. Trusted average reconstruction
   const trustedSensors = sensorAnalysis.filter(s => !s.isFaulty);
   const trustedSum = trustedSensors.reduce((acc, s) => acc + Number(s.submittedValueRaw), 0);
   const trustedAvgRaw = trustedSensors.length > 0 ? Math.trunc(trustedSum / trustedSensors.length) : 0;
+  
+  const finalFaultyCount = faultyFlags.filter(f => f === true).length;
+  const finalConsensusReached = consensusReached || (count >= 2 && finalFaultyCount <= Math.floor(count / 2));
 
-  // 5. Fetch the consensus event for txHash + blockNumber traceability
-  const toBlock = "latest";
   let txTrace = null;
   try {
-    const eventFilter = r.consensusReached
+    const eventFilter = finalConsensusReached
       ? consensusRead.filters.ConsensusReached(roundId)
       : consensusRead.filters.ConsensusRejected(roundId);
-
-    const events = await consensusRead.queryFilter(eventFilter, 0, toBlock);
+    const events = await consensusRead.queryFilter(eventFilter, 0, 'latest');
     if (events.length > 0) {
       const ev = events[0];
       const block = await provider.getBlock(ev.blockNumber);
@@ -698,21 +992,20 @@ async function explainConsensusRound(roundId) {
         blockHash: ev.blockHash,
         blockTimestamp: block.timestamp.toString(),
         blockTimestampISO: new Date(block.timestamp * 1000).toISOString(),
-        eventName: r.consensusReached ? "ConsensusReached" : "ConsensusRejected"
+        eventName: finalConsensusReached ? "ConsensusReached" : "ConsensusRejected"
       };
     }
-  } catch { /* event lookup is best-effort */ }
+  } catch { /* best-effort */ }
 
-  // 6. Assemble explanation
   return {
-    roundId: r.roundId,
+    roundId: roundId.toString(),
 
     inputs: {
       sensorCount: count,
-      sensors: r.participants.map((addr, i) => ({
+      sensors: participants.map((addr, i) => ({
         address: addr,
-        valueRaw: r.values[i],
-        valueScaled: r.valuesScaled[i]
+        valueRaw: valuesStr[i] || "0",
+        valueScaled: valuesScaled[i]
       }))
     },
 
@@ -723,24 +1016,24 @@ async function explainConsensusRound(roundId) {
     },
 
     step2_faultDetection: {
-      description: "A sensor is FAULTY if its total disagreement score exceeds faultyThresholdUnits × (count−1).",
+      description: "A sensor is FAULTY if its total disagreement score exceeds faultyThresholdUnits  (count1).",
       faultyThresholdUnits: faultyThreshRaw.toString(),
       faultyThresholdScaled: (faultyThreshRaw / 100).toFixed(2),
       scoreThresholdRaw: scoreThreshold.toString(),
       scoreThresholdScaled: (scoreThreshold / 100).toFixed(2),
-      formula: `threshold = ${faultyThreshRaw} × (${count}−1) = ${scoreThreshold}`,
+      formula: `threshold = ${faultyThreshRaw}  (${count}1) = ${scoreThreshold}`,
       sensors: sensorAnalysis
     },
 
     step3_safetyCheck: {
       description: "Round is REJECTED if faultyCount > totalCount / 2 (majority faulty).",
       totalSensors: count,
-      faultySensors: Number(r.faultyCount),
+      faultySensors: finalFaultyCount,
       majorityLimit: Math.floor(count / 2),
-      roundRejected: !r.consensusReached && Number(r.faultyCount) > 0,
-      verdict: Number(r.faultyCount) > Math.floor(count / 2)
-        ? `REJECTED — ${r.faultyCount} faulty sensors exceeds majority limit of ${Math.floor(count/2)}`
-        : `PASSED — ${r.faultyCount} faulty sensors within majority limit of ${Math.floor(count/2)}`
+      roundRejected: !finalConsensusReached && count > 0,
+      verdict: finalFaultyCount > Math.floor(count / 2)
+        ? `REJECTED  ${finalFaultyCount} faulty sensors exceeds majority limit of ${Math.floor(count/2)}`
+        : `PASSED  ${finalFaultyCount} faulty sensors within majority limit of ${Math.floor(count/2)}`
     },
 
     step4_trustedAverage: {
@@ -754,26 +1047,23 @@ async function explainConsensusRound(roundId) {
       trustedSumRaw: trustedSum.toString(),
       computedAverageRaw: trustedAvgRaw.toString(),
       computedAverageScaled: (trustedAvgRaw / 100).toFixed(2),
-      storedConsensusRaw: r.consensusValue,
-      storedConsensusScaled: r.consensusValueScaled
+      storedConsensusRaw: consensusValue,
+      storedConsensusScaled: (Number(consensusValue) / 100).toFixed(2)
     },
 
     result: {
-      consensusReached: r.consensusReached,
-      consensusValue: r.consensusValue,
-      consensusValueScaled: r.consensusValueScaled,
-      trustedParticipants: r.trustedParticipants,
-      faultyCount: r.faultyCount,
-      totalParticipants: r.totalParticipants
+      consensusReached: finalConsensusReached,
+      consensusValue: consensusValue,
+      consensusValueScaled: (Number(consensusValue) / 100).toFixed(2),
+      trustedParticipants: trustedSensors.length.toString(),
+      faultyCount: finalFaultyCount.toString(),
+      totalParticipants: count.toString()
     },
 
     blockchainTrace: txTrace
   };
 }
 
-// ============================================================
-// EVENT HISTORY
-// ============================================================
 
 async function getEventHistory(fromBlock = 0) {
   const toBlock = "latest";
@@ -810,7 +1100,6 @@ async function getEventHistory(fromBlock = 0) {
     return blockCache[blockNumber];
   }
 
-  // We enrich only the most meaningful events to avoid too many RPC calls
   const enrichedReached = await Promise.all(reachedEvents.map(async e => {
     const ts = await blockTimestamp(e.blockNumber);
     return {
@@ -929,17 +1218,12 @@ async function getEventHistory(fromBlock = 0) {
   };
 }
 
-// ============================================================
-// EXPORTS
-// ============================================================
 
 module.exports = {
-  // DeviceRegistry write
   registerDevice,
   updateFirmware,
   deactivateDevice,
   reactivateDevice,
-  // DeviceRegistry read
   getAllDevices,
   getDeviceInfo,
   verifyDevice,
@@ -947,7 +1231,6 @@ module.exports = {
   getDeviceFirmware,
   isDeviceRegistered,
   getRegistryStats,
-  // SensorConsensus write
   submitReading,
   forceNewRound,
   forceConsensusCalculation,
@@ -955,7 +1238,6 @@ module.exports = {
   setMinSensorsForConsensus,
   setConsensusWindow,
   setDeviceRegistry,
-  // SensorConsensus read
   getLatestConsensus,
   getLatestRound,
   getConsensusRound,
@@ -964,13 +1246,11 @@ module.exports = {
   getReading,
   getConsensusStats,
   getAllRounds,
-  // Consensus explanation
   explainConsensusRound,
-  // Blockchain inspection
   getLatestBlock,
   getBlockByNumber,
   getTransactionDetails,
   getNetworkInfo,
-  // Events
-  getEventHistory
+  getEventHistory,
+  formatBlockchainError
 };

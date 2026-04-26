@@ -1,35 +1,29 @@
-// ============================================================
-// index.js — Express server entry point
-//
-// ENHANCED: Added /blockchain routes for chain inspection.
-// ============================================================
-
 require("dotenv").config();
 const express = require("express");
 const cors    = require("cors");
 
 const registryRoutes    = require("./routes/registry");
 const consensusRoutes   = require("./routes/consensus");
-const blockchainRoutes  = require("./routes/blockchain");   // NEW
+const blockchainRoutes  = require("./routes/blockchain");   
 
 const app = express();
 
-// ── Middleware ───────────────────────────────────────────────
+//  Middleware 
 app.use(cors());
 app.use(express.json());
 
-// ── Request logger ───────────────────────────────────────────
+//  Request logger 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// ── Routes ───────────────────────────────────────────────────
+//  Routes 
 app.use("/registry",    registryRoutes);
 app.use("/consensus",   consensusRoutes);
-app.use("/blockchain",  blockchainRoutes);   // NEW
+app.use("/blockchain",  blockchainRoutes);   
 
-// ── Health check ─────────────────────────────────────────────
+//  Health check 
 app.get("/health", (req, res) => {
   res.json({
     status:    "ok",
@@ -41,7 +35,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ── API reference ────────────────────────────────────────────
+//  API reference 
 app.get("/", (req, res) => {
   res.json({
     name:    "IoT Blockchain Backend",
@@ -70,7 +64,7 @@ app.get("/", (req, res) => {
         allRounds:       "GET  /consensus/rounds",
         currentRound:    "GET  /consensus/rounds/current",
         roundById:       "GET  /consensus/rounds/:id",
-        roundExplain:    "GET  /consensus/rounds/:id/explain",   // NEW
+        roundExplain:    "GET  /consensus/rounds/:id/explain",   
         readingBySensor: "GET  /consensus/rounds/:id/reading/:sensor",
         events:          "GET  /consensus/events?fromBlock=0",
         submit:          "POST /consensus/submit",
@@ -82,7 +76,6 @@ app.get("/", (req, res) => {
         setRegistry:     "POST /consensus/settings/device-registry"
       },
 
-      // ── NEW ──────────────────────────────────────────────
       blockchain: {
         network:  "GET /blockchain/network",
         latest:   "GET /blockchain/latest",
@@ -93,29 +86,29 @@ app.get("/", (req, res) => {
   });
 });
 
-// ── 404 handler ──────────────────────────────────────────────
+//  404 handler 
 app.use((req, res) => {
   res.status(404).json({ success: false, error: `Route ${req.method} ${req.path} not found` });
 });
 
-// ── Global error handler ─────────────────────────────────────
+//  Global error handler 
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ success: false, error: err.message });
 });
 
-// ── Start ────────────────────────────────────────────────────
+//  Start 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("");
   console.log("  IoT Blockchain Backend v1.1.0");
   console.log(`  Running on http://localhost:${PORT}`);
   console.log(`  Ganache RPC: ${process.env.RPC_URL}`);
   console.log(`  DeviceRegistry:   ${process.env.DEVICE_REGISTRY_ADDRESS}`);
   console.log(`  SensorConsensus:  ${process.env.SENSOR_CONSENSUS_ADDRESS}`);
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("");
   console.log(`  API reference:    http://localhost:${PORT}/`);
   console.log(`  Health check:     http://localhost:${PORT}/health`);
   console.log(`  Blockchain:       http://localhost:${PORT}/blockchain/network`);
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("");
 });

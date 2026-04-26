@@ -12,7 +12,6 @@
 #include <QJsonObject>
 #include "apiclient.h"
 
-// Forward-declare all page classes
 class DashboardPage;
 class DevicesPage;
 class SensorsPage;
@@ -27,7 +26,7 @@ class ConsensusAnalysisPage;    // NEW
  * Modal dialog shown after every write operation.
  * Displays the enriched transaction receipt so users can see
  * exactly which block the tx was included in, how much gas it used,
- * and what its status is — with a link they can copy into the
+ * and what its status is  with a link they can copy into the
  * Blockchain Explorer tab to inspect further.
  */
 class TxFeedbackDialog : public QDialog
@@ -39,7 +38,6 @@ public:
                                QWidget *parent = nullptr);
 };
 
-// ============================================================
 
 class MainWindow : public QMainWindow
 {
@@ -63,7 +61,7 @@ public:
 private slots:
     void onNavItemChanged(int index);
 
-    // ── Global write-result feedback slots ───────────────────
+    //  Global write-result feedback slots 
     void onDeviceRegistered(QJsonObject txData);
     void onFirmwareUpdated(QJsonObject txData);
     void onDeviceDeactivated(QJsonObject txData);
@@ -86,14 +84,12 @@ private:
     QWidget         *m_centralWidget;
     QHBoxLayout     *m_mainLayout;
 
-    // Side nav
     QWidget         *m_navPanel;
     QVBoxLayout     *m_navLayout;
     QLabel          *m_logoLabel;
     QListWidget     *m_navList;
     QLabel          *m_versionLabel;
 
-    // Pages
     QStackedWidget       *m_pages;
     DashboardPage        *m_dashboardPage;
     DevicesPage          *m_devicesPage;

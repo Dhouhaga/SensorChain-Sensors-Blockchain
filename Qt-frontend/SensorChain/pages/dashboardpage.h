@@ -39,7 +39,6 @@ private:
     ApiClient *m_api;
     QTimer    *m_autoRefresh;
 
-    // Stat cards
     QLabel *m_consensusBig;
     QLabel *m_currentRoundLabel2;
     QLabel *m_participantsCountLabel;
@@ -58,13 +57,10 @@ private:
     QLabel *m_lastRoundStatusLabel;
     QLabel *m_lastRoundIdLabel;
 
-    // Current round participants table
     QTableWidget *m_participantsTable;
 
-    // Round time progress bar
     QProgressBar *m_roundProgress;
 
-    // Stored stats for progress bar calculation
     int m_consensusWindow  = 3600;
     int m_timeRemaining    = 0;
 };

@@ -1,4 +1,3 @@
-// adminpage.cpp
 #include "adminpage.h"
 #include <QDateTime>
 #include <QScrollArea>
@@ -8,22 +7,18 @@ AdminPage::AdminPage(ApiClient *api, QWidget *parent)
 {
     setupUi();
 
-    // Registry write
     connect(m_api, &ApiClient::deviceRegistered,   this, &AdminPage::onDeviceRegistered);
     connect(m_api, &ApiClient::firmwareUpdated,     this, &AdminPage::onFirmwareUpdated);
     connect(m_api, &ApiClient::deviceDeactivated,   this, &AdminPage::onDeviceDeactivated);
     connect(m_api, &ApiClient::deviceReactivated,   this, &AdminPage::onDeviceReactivated);
-    // Consensus write
     connect(m_api, &ApiClient::newRoundStarted,     this, &AdminPage::onNewRoundStarted);
     connect(m_api, &ApiClient::consensusForced,     this, &AdminPage::onConsensusForced);
     connect(m_api, &ApiClient::faultyThresholdSet,  this, &AdminPage::onFaultyThresholdSet);
     connect(m_api, &ApiClient::minSensorsSet,       this, &AdminPage::onMinSensorsSet);
     connect(m_api, &ApiClient::consensusWindowSet,  this, &AdminPage::onConsensusWindowSet);
     connect(m_api, &ApiClient::deviceRegistrySet,   this, &AdminPage::onDeviceRegistrySet);
-    // Stats
     connect(m_api, &ApiClient::registryStatsReady,  this, &AdminPage::onRegistryStats);
     connect(m_api, &ApiClient::consensusStatsReady, this, &AdminPage::onConsensusStats);
-    // Error
     connect(m_api, &ApiClient::requestError,        this, &AdminPage::onError);
 
     refresh();
@@ -37,7 +32,7 @@ void AdminPage::setupUi()
 
     QLabel *title = new QLabel("Admin");
     title->setObjectName("pageTitle");
-    QLabel *subtitle = new QLabel("Contract owner functions — device management and system settings");
+    QLabel *subtitle = new QLabel("Contract owner functions  device management and system settings");
     subtitle->setObjectName("pageSubtitle");
     mainLayout->addWidget(title);
     mainLayout->addWidget(subtitle);
@@ -45,14 +40,14 @@ void AdminPage::setupUi()
     QHBoxLayout *contentRow = new QHBoxLayout();
     contentRow->setSpacing(16);
 
-    // ── Left: tabs ───────────────────────────────────────────────────
+    //  Left: tabs 
     m_tabs = new QTabWidget();
     m_tabs->addTab(buildRegistryTab(),  "Registry");
     m_tabs->addTab(buildConsensusTab(), "Consensus");
     m_tabs->addTab(buildInfoTab(),      "Info");
     contentRow->addWidget(m_tabs, 2);
 
-    // ── Right: activity log ──────────────────────────────────────────
+    //  Right: activity log 
     QGroupBox *logGroup = new QGroupBox("Activity Log");
     QVBoxLayout *logLayout = new QVBoxLayout(logGroup);
     m_activityLog = new QTextEdit();
@@ -71,7 +66,6 @@ QWidget *AdminPage::buildRegistryTab()
     QVBoxLayout *layout = new QVBoxLayout(container);
     layout->setSpacing(16);
 
-    // Register device
     QGroupBox *regGroup = new QGroupBox("Register New Device");
     QFormLayout *regForm = new QFormLayout(regGroup);
 
@@ -89,7 +83,6 @@ QWidget *AdminPage::buildRegistryTab()
     regForm->addRow("",                  m_registerBtn);
     layout->addWidget(regGroup);
 
-    // Update firmware
     QGroupBox *updGroup = new QGroupBox("Update Firmware");
     QFormLayout *updForm = new QFormLayout(updGroup);
 
@@ -105,7 +98,6 @@ QWidget *AdminPage::buildRegistryTab()
     updForm->addRow("",                  m_updateFirmwareBtn);
     layout->addWidget(updGroup);
 
-    // Deactivate / Reactivate
     QGroupBox *actGroup = new QGroupBox("Deactivate / Reactivate Device");
     QFormLayout *actForm = new QFormLayout(actGroup);
 
@@ -124,7 +116,6 @@ QWidget *AdminPage::buildRegistryTab()
     layout->addWidget(actGroup);
     layout->addStretch();
 
-    // Connect
     connect(m_registerBtn,      &QPushButton::clicked, this, &AdminPage::onRegisterDeviceClicked);
     connect(m_updateFirmwareBtn,&QPushButton::clicked, this, &AdminPage::onUpdateFirmwareClicked);
     connect(m_deactivateBtn,    &QPushButton::clicked, this, &AdminPage::onDeactivateClicked);
@@ -142,7 +133,6 @@ QWidget *AdminPage::buildConsensusTab()
     QVBoxLayout *layout = new QVBoxLayout(container);
     layout->setSpacing(16);
 
-    // Round controls
     QGroupBox *roundGroup = new QGroupBox("Round Management");
     QHBoxLayout *roundLayout = new QHBoxLayout(roundGroup);
 
@@ -157,22 +147,19 @@ QWidget *AdminPage::buildConsensusTab()
     roundLayout->addWidget(m_forceConsensusBtn);
     layout->addWidget(roundGroup);
 
-    // Settings
     QGroupBox *settingsGroup = new QGroupBox("Consensus Settings");
     QFormLayout *settingsForm = new QFormLayout(settingsGroup);
 
-    // Faulty threshold
     m_thresholdInput = new QSpinBox();
     m_thresholdInput->setRange(1, 99999);
     m_thresholdInput->setValue(500);
-    m_thresholdInput->setSuffix("  (÷100 = °C)");
+    m_thresholdInput->setSuffix("  (100 = C)");
     m_setThresholdBtn = new QPushButton("Set");
     QHBoxLayout *threshRow = new QHBoxLayout();
     threshRow->addWidget(m_thresholdInput, 1);
     threshRow->addWidget(m_setThresholdBtn);
-    settingsForm->addRow("Fault Threshold (×100):", threshRow);
+    settingsForm->addRow("Fault Threshold (100):", threshRow);
 
-    // Min sensors
     m_minSensorsInput = new QSpinBox();
     m_minSensorsInput->setRange(2, 100);
     m_minSensorsInput->setValue(3);
@@ -182,7 +169,6 @@ QWidget *AdminPage::buildConsensusTab()
     minRow->addWidget(m_setMinSensorsBtn);
     settingsForm->addRow("Min Sensors:", minRow);
 
-    // Consensus window
     m_windowInput = new QSpinBox();
     m_windowInput->setRange(60, 86400);
     m_windowInput->setValue(3600);
@@ -193,7 +179,6 @@ QWidget *AdminPage::buildConsensusTab()
     windowRow->addWidget(m_setWindowBtn);
     settingsForm->addRow("Consensus Window:", windowRow);
 
-    // Device registry address
     m_registryAddressInput = new QLineEdit();
     m_registryAddressInput->setPlaceholderText("0x...");
     m_setRegistryBtn = new QPushButton("Set");
@@ -205,7 +190,6 @@ QWidget *AdminPage::buildConsensusTab()
     layout->addWidget(settingsGroup);
     layout->addStretch();
 
-    // Connect
     connect(m_forceNewRoundBtn,  &QPushButton::clicked, this, &AdminPage::onForceNewRoundClicked);
     connect(m_forceConsensusBtn, &QPushButton::clicked, this, &AdminPage::onForceConsensusClicked);
     connect(m_setThresholdBtn,   &QPushButton::clicked, this, &AdminPage::onSetThresholdClicked);
@@ -272,7 +256,7 @@ void AdminPage::refresh()
 void AdminPage::logResult(const QString &action, const QJsonObject &receipt, bool success)
 {
     QDateTime now = QDateTime::currentDateTime();
-    QString prefix = success ? "✓" : "✗";
+    QString prefix = success ? "" : "";
     QString line = QString("[%1]  %2  %3\n")
                        .arg(now.toString("hh:mm:ss"))
                        .arg(prefix)
@@ -288,14 +272,14 @@ void AdminPage::logResult(const QString &action, const QJsonObject &receipt, boo
     m_activityLog->verticalScrollBar()->setValue(m_activityLog->verticalScrollBar()->maximum());
 }
 
-// ── Registry write responses ─────────────────────────────────────────────────
+//  Registry write responses 
 
 void AdminPage::onDeviceRegistered(QJsonObject r)   { logResult("Device Registered", r);  refresh(); }
 void AdminPage::onFirmwareUpdated(QJsonObject r)     { logResult("Firmware Updated", r);   refresh(); }
 void AdminPage::onDeviceDeactivated(QJsonObject r)   { logResult("Device Deactivated", r); refresh(); }
 void AdminPage::onDeviceReactivated(QJsonObject r)   { logResult("Device Reactivated", r); refresh(); }
 
-// ── Consensus write responses ─────────────────────────────────────────────────
+//  Consensus write responses 
 
 void AdminPage::onNewRoundStarted(QJsonObject r)    { logResult("New Round Started", r);       refresh(); }
 void AdminPage::onConsensusForced(QJsonObject r)    { logResult("Consensus Forced", r);        refresh(); }
@@ -304,7 +288,7 @@ void AdminPage::onMinSensorsSet(QJsonObject r)      { logResult("Min Sensors Upd
 void AdminPage::onConsensusWindowSet(QJsonObject r) { logResult("Consensus Window Updated", r);refresh(); }
 void AdminPage::onDeviceRegistrySet(QJsonObject r)  { logResult("Device Registry Updated", r); refresh(); }
 
-// ── Stats ─────────────────────────────────────────────────────────────────────
+//  Stats 
 
 void AdminPage::onRegistryStats(QJsonObject data)
 {
@@ -321,10 +305,9 @@ void AdminPage::onConsensusStats(QJsonObject data)
     m_currentRoundIdLabel->setText(data["currentRoundId"].toString());
     m_totalRoundsLabel->setText(data["totalRounds"].toString());
     m_minSensorsLabel->setText(data["minSensorsForConsensus"].toString());
-    m_thresholdLabel->setText(data["faultyThresholdScaled"].toString() + " °C");
+    m_thresholdLabel->setText(data["faultyThresholdScaled"].toString() + " C");
     m_windowLabel->setText(data["consensusWindow"].toString() + " seconds");
 
-    // ONLY update input fields if they are NOT currently being edited by the user
     if (!m_thresholdInput->hasFocus()) {
         m_thresholdInput->setValue(data["faultyThresholdUnits"].toString("500").toInt());
     }
@@ -344,7 +327,7 @@ void AdminPage::onError(QString endpoint, QString error)
     logResult("ERROR on " + endpoint + ": " + error, {}, false);
 }
 
-// ── Button handlers ──────────────────────────────────────────────────────────
+//  Button handlers 
 
 void AdminPage::onRegisterDeviceClicked() {
     m_api->registerDevice(

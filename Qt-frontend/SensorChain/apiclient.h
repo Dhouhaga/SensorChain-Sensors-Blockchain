@@ -13,12 +13,12 @@
  * Thin HTTP wrapper around the IoT Blockchain backend.
  *
  * ENHANCED (v1.1):
- *   • All write-signal payloads now carry enriched transaction data
+ *    All write-signal payloads now carry enriched transaction data
  *     (txHash, blockNumber, blockHash, from, to, gasUsed, gasPrice,
  *      status, confirmations, blockTimestamp, logsCount).
- *   • New blockchain inspector signals  (blockchainLatestReady,
+ *    New blockchain inspector signals  (blockchainLatestReady,
  *     blockchainBlockReady, blockchainTxReady, blockchainNetworkReady).
- *   • New consensus explanation signal  (consensusExplainReady).
+ *    New consensus explanation signal  (consensusExplainReady).
  */
 class ApiClient : public QObject
 {
@@ -27,7 +27,7 @@ class ApiClient : public QObject
 public:
     explicit ApiClient(QObject *parent = nullptr);
 
-    // ── DeviceRegistry — read ────────────────────────────────────
+    //  DeviceRegistry  read 
     void getRegistryStats();
     void getAllDevices();
     void getDeviceInfo(const QString &address);
@@ -36,7 +36,7 @@ public:
     void getDeviceFirmware(const QString &address);
     void verifyFirmware(const QString &address, const QString &hash);
 
-    // ── DeviceRegistry — write ───────────────────────────────────
+    //  DeviceRegistry  write 
     void registerDevice(const QString &deviceAddress,
                         const QString &firmwareHash,
                         int firmwareVersion,
@@ -47,7 +47,7 @@ public:
     void deactivateDevice(const QString &deviceAddress);
     void reactivateDevice(const QString &deviceAddress);
 
-    // ── SensorConsensus — read ───────────────────────────────────
+    //  SensorConsensus  read 
     void getLatestRound();
     void getConsensusStats();
     void getLatestConsensus();
@@ -57,7 +57,7 @@ public:
     void getReading(int roundId, const QString &sensorAddress);
     void getEventHistory(int fromBlock = 0);
 
-    // ── SensorConsensus — write ──────────────────────────────────
+    //  SensorConsensus  write 
     void submitReading(const QString &sensorAddress,
                        int value,
                        const QString &firmwareHash);
@@ -68,17 +68,15 @@ public:
     void setConsensusWindow(int windowSeconds);
     void setDeviceRegistry(const QString &registryAddress);
 
-    // ── Consensus explanation (NEW) ──────────────────────────────
     void getConsensusExplain(int roundId);
 
-    // ── Blockchain inspector (NEW) ───────────────────────────────
     void getBlockchainNetwork();
     void getBlockchainLatest();
     void getBlockchainBlock(int blockNumber);
     void getBlockchainTx(const QString &txHash);
 
 signals:
-    // ── DeviceRegistry — read signals ────────────────────────────
+    //  DeviceRegistry  read signals 
     void registryStatsReady(QJsonObject data);
     void allDevicesReady(QJsonArray data);
     void deviceInfoReady(QJsonObject data);
@@ -87,13 +85,13 @@ signals:
     void deviceFirmwareReady(QJsonObject data);
     void verifyFirmwareReady(QString address, bool matches);
 
-    // ── DeviceRegistry — write signals ───────────────────────────
+    //  DeviceRegistry  write signals 
     void deviceRegistered(QJsonObject txData);
     void firmwareUpdated(QJsonObject txData);
     void deviceDeactivated(QJsonObject txData);
     void deviceReactivated(QJsonObject txData);
 
-    // ── SensorConsensus — read signals ───────────────────────────
+    //  SensorConsensus  read signals 
     void latestRoundReady(QJsonObject data);
     void consensusStatsReady(QJsonObject data);
     void latestConsensusReady(QJsonObject data);
@@ -103,7 +101,7 @@ signals:
     void readingReady(QJsonObject data);
     void eventHistoryReady(QJsonObject data);
 
-    // ── SensorConsensus — write signals ──────────────────────────
+    //  SensorConsensus  write signals 
     void readingSubmitted(QJsonObject txData);
     void newRoundStarted(QJsonObject txData);
     void consensusForced(QJsonObject txData);
@@ -112,16 +110,14 @@ signals:
     void consensusWindowSet(QJsonObject txData);
     void deviceRegistrySet(QJsonObject txData);
 
-    // ── Consensus explanation (NEW) ──────────────────────────────
     void consensusExplainReady(QJsonObject data);
 
-    // ── Blockchain inspector (NEW) ───────────────────────────────
     void blockchainNetworkReady(QJsonObject data);
     void blockchainLatestReady(QJsonObject data);
     void blockchainBlockReady(QJsonObject data);
     void blockchainTxReady(QJsonObject data);
 
-    // ── Error signal ─────────────────────────────────────────────
+    //  Error signal 
     void requestError(QString endpoint, QString errorMessage);
 
 private:
