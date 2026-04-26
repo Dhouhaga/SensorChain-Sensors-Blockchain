@@ -1,4 +1,4 @@
-// routes/registry.js  All DeviceRegistry endpoints
+// All DeviceRegistry endpoints
 
 const express = require("express");
 const router = express.Router();
