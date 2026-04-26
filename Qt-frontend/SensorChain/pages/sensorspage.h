@@ -74,4 +74,4 @@ private:
                                       const QString &sensorAddress, const QString &value);
 };
 
-#endif // SENSORSPAGE_H
+#endif
