@@ -2,6 +2,9 @@
 
 SensorChain is an IoT blockchain demo that combines a Node.js backend, a Qt desktop frontend, and two Solidity smart contracts to register devices, submit signed readings, and calculate consensus on-chain.
 
+<img width="1366" height="676" alt="result(1)" src="https://github.com/user-attachments/assets/08c3d7a9-3253-4999-9698-11b332c7a962" />
+
+
 The project is structured for local blockchain development with Ganache, but it is also suitable for publishing as a public repository because private secrets are kept out of version control and the repository includes a safe environment template.
 
 ## Architecture
@@ -57,12 +60,6 @@ The server starts on port `3000` by default.
 ### 4. Run the Qt desktop app
 
 Open `Qt-frontend/SensorChain/` in Qt Creator or build it with CMake:
-
-```bash
-cd Qt-frontend/SensorChain
-cmake -S . -B build
-cmake --build build
-```
 
 Qt links against the backend over HTTP.
 
