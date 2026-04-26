@@ -113,4 +113,4 @@ private:
     QTextEdit *m_activityLog;
 };
 
-#endif // ADMINPAGE_H
+#endif
