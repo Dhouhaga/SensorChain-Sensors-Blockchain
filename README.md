@@ -45,8 +45,6 @@ Fill in real values in `.env` for:
 - `OWNER_PRIVATE_KEY`
 - `SENSOR_PRIVATE_KEY_<SENSOR_ADDRESS>` entries for each sensor wallet
 
-Do not commit `.env`.
-
 ### 3. Run the backend
 
 ```bash
