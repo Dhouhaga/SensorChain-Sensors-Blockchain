@@ -53,7 +53,7 @@ public:
      * Connect any write signal to this slot; the dialog summarises
      * the enriched receipt returned by the backend.
      *
-     * @param operation  Human-readable name, e.g. "Register Device".
+     * @param operation  readable name, e.g. "Register Device".
      * @param txData     QJsonObject with enriched receipt fields.
      */
     void showTxFeedback(const QString &operation, const QJsonObject &txData);
