@@ -63,4 +63,4 @@ private:
     QTextEdit    *m_detailDisplay;
 };
 
-#endif // DEVICESPAGE_H
+#endif 
