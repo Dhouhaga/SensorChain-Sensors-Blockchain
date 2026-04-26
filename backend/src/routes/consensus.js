@@ -8,7 +8,6 @@ const wrap = fn => (req, res) =>
   fn(req, res).catch(err => {
     console.error("API Error:", err);
     
-    // Check if this is a formatted blockchain error (from blockchain.js)
     if (err.formattedResponse) {
       return res.status(400).json(err.formattedResponse);
     }
