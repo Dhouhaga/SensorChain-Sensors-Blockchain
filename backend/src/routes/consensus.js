@@ -1,4 +1,4 @@
-// routes/consensus.js  All SensorConsensus endpoints
+// All SensorConsensus endpoints
 
 const express = require("express");
 const router  = express.Router();
