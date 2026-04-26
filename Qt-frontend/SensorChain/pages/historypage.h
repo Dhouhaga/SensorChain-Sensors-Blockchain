@@ -61,4 +61,4 @@ private:
     QSpinBox     *m_fromBlockInput;
 };
 
-#endif // HISTORYPAGE_H
+#endif
